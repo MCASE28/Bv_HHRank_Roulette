@@ -286,7 +286,11 @@ function rankNorm(s){ s=_norm(s).toLowerCase(); if(/언랭|unrank/.test(s))retur
 function gradByRank(rank){ switch(rank){ case '브론즈':return 'linear-gradient(135deg,#968768,#524937)'; case '실버':return 'linear-gradient(135deg,#BABABA,#616060)'; case '골드':return 'linear-gradient(135deg,#D1C432,#827810)'; default:return 'linear-gradient(135deg,#44D446,#2C472C)'; } }
 function setupCanvas(canvas){ const dpr=Math.max(1,window.devicePixelRatio||1); const rect=canvas.getBoundingClientRect(); canvas.style.width=rect.width+'px'; canvas.style.height=rect.height+'px'; canvas.width=Math.round(rect.width*dpr); canvas.height=Math.round(rect.height*dpr); const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.imageSmoothingEnabled=true; return { ctx, w:rect.width, h:rect.height }; }
 function drawName(ctx, text, cx, cy, maxW, targetH, weight=900){ let lo=14, hi=Math.min(targetH,64), best=lo; ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='center'; while(lo<=hi){ const mid=(lo+hi)>>1; ctx.font=`normal ${weight} ${mid}px Arial, "Noto Sans KR", sans-serif`; const w=ctx.measureText(text).width; if(w<=maxW){best=mid; lo=mid+1;} else hi=mid-1; } ctx.font=`normal ${weight} ${best}px Arial, "Noto Sans KR", sans-serif`; ctx.fillText(text,Math.round(cx)+0.5,Math.round(cy)+0.5); ctx.restore(); }
-let LAST_SPIN_MODE=null; function pickStopMode(){ const modes=['exact','nudgeForward','nudgeBackward']; let m=modes[Math.floor(Math.random()*modes.length)]; if(m===LAST_SPIN_MODE) m=modes[(modes.indexOf(m)+1)%modes.length]; LAST_SPIN_MODE=m; return m; }
+let LAST_SPIN_MODE=null;
+function pickStopMode(){
+  const modes=['exact','nudgeForward','nudgeBackward'];
+  return modes[(Math.random()*3)|0]; // 균등 1/3
+}
 function canvasSpin(names, winner, opts, onDone){
   const overlay=$('overlay'); const canvas=$('wheelCanvas'); const { ctx, w, h }=setupCanvas(canvas);
   const centerY=h/2, rowH=opts.rowH||40, gap=opts.gap||12, step=rowH+gap;
@@ -532,4 +536,5 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
