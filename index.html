@@ -242,7 +242,7 @@ function totalWinners(){return RANKS.reduce((s,r)=>s+(selected[r]?.length||0),0)
 function copyWinners(){ if(totalWinners()===0){ setStatus('복사할 당첨자가 없습니다.',true); return; } const lines=[]; for(const r of RANKS){ const arr=selected[r]||[]; if(!arr.length) continue; lines.push(r,'------------',...arr.map(n=>`${n} (${fmtStats(n)})`),''); } const txt=lines.join('\n').trim(); if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>setStatus('✅ 복사 완료',false)).catch(()=>alert(txt)); } else alert(txt); }
 function pick(rank){ try{ const btn=$('btn-'+rank); if(!btn||btn.disabled) return; btn.disabled=true; const remain=(pool[rank]||[]).map(labelOf).filter(n=>n && !(selected[rank]||[]).includes(n)); if(!remain.length){ setStatus(`⚠️ ${rank} 인원이 없습니다.`,true); btn.disabled=false; return; } const winner=remain[Math.floor(Math.random()*remain.length)]; showOverlayWithName(rank, winner, ()=>{ (selected[rank]=selected[rank]||[]).push(winner); append('box-'+rank, renderRow(winner)); updateCounts(rank); const still=(pool[rank]?.length||0)-(selected[rank]?.length||0); btn.disabled=(still===0); dis('copy-btn', totalWinners()===0); setStatus(`${rank} → ${winner} 당첨!`, false); }); }catch(e){ setStatus('❌ pick 오류: '+e,true); } }
 function resetRank(rank){ selected[rank]=[]; html('box-'+rank,''); updateCounts(rank); dis('btn-'+rank',(pool[rank]?.length||0)===0); dis('copy-btn', totalWinners()===0); setStatus(`${rank} 리셋 완료`, false); }
-function preReset(){ setStatus('⏳ 부팅 중…',false); $('meta').textContent=''; for(const r of RANKS){ html('box-'+r,''); html('count-'+r,'(당첨: 0명 / 남음: 0명)'); dis('btn-'+r',true); dis('reset-'+r',true); } dis('copy-btn',true); }
+function preReset(){ setStatus('⏳ 부팅 중…',false); $('meta').textContent=''; for(const r of RANKS){ html('box-'+r,''); html('count-'+r,'(당첨: 0명 / 남음: 0명)'); dis('btn-'+r,true); dis('reset-'+r,true); } dis('copy-btn',true); }
 
 /* =====================
    부팅: 시트에서 데이터 읽기
@@ -278,3 +278,4 @@ document.addEventListener('DOMContentLoaded', ()=>{ preReset(); loadFromSheets()
 </script>
 </body>
 </html>
+
