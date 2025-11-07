@@ -304,55 +304,47 @@ function preReset(){
 /* ===== 랭크 팝업 테이블(등급 열 제외) + 고정 헤더 분리 렌더 ===== */
 function buildRankTable(rank){
   if(!statsHeader.length){ return '<div>참여자 리스트를 불러오지 못했습니다.</div>'; }
+
   const hdr = statsHeader.map(h => _norm(h));
   const idxName  = hdr.findIndex(h => /^이름$|^name$/i.test(h));
-  const idxRank  = hdr.findIndex(h => /^등급$|^랭크$|^rank$/i.test(h)); // 필터용만
+  const idxRank  = hdr.findIndex(h => /^등급$|^랭크$|^rank$/i.test(h)); // 필터용
   const idxApply = hdr.findIndex(h => /^지원$|^apply$/i.test(h));
   const idxPart  = hdr.findIndex(h => /^참여$|^part$/i.test(h));
   const idxWin   = hdr.findIndex(h => /^승리$|^win$/i.test(h));
   const extraIdx = []; hdr.forEach((h,i)=>{ if(/^\d+\s*회$/i.test(h)) extraIdx.push(i); });
 
-  const headTitles = [];
-  let winColAt = -1;
-  if(idxName>=0)  headTitles.push('이름');
-  if(idxApply>=0) headTitles.push('지원');
-  if(idxPart>=0)  headTitles.push('참여');
-  if(idxWin>=0){  winColAt = headTitles.length; headTitles.push('승리'); }
-  extraIdx.forEach(i => headTitles.push(hdr[i]));
+  // thead (등급 열 제외)
+  const headCells = [];
+  if (idxName>=0)  headCells.push('<th class="sticky-col-head">이름</th>');
+  if (idxApply>=0) headCells.push('<th>지원</th>');
+  if (idxPart>=0)  headCells.push('<th>참여</th>');
+  if (idxWin>=0)   headCells.push('<th class="sep-right">승리</th>');
+  extraIdx.forEach(i => headCells.push(`<th>${esc(hdr[i])}</th>`));
 
-  const rowsHtml = [];
+  // tbody
+  const rows = [];
   for(const r of statsRows){
     const rv = idxRank>=0 ? r[idxRank] : '';
     if(rank && rankNorm(rv)!==rank) continue;
+
     const tds = [];
-    if(idxName>=0)  tds.push(`<td class="sticky-col sticky-col-body">${esc(r[idxName]||'')}</td>`);
+    if(idxName>=0)  tds.push(`<td class="sticky-col">${esc(r[idxName]||'')}</td>`);
     if(idxApply>=0) tds.push(`<td>${esc(r[idxApply]||'')}</td>`);
     if(idxPart>=0)  tds.push(`<td>${esc(r[idxPart ]||'')}</td>`);
     if(idxWin>=0)   tds.push(`<td class="sep-right">${esc(r[idxWin  ]||'')}</td>`);
-    extraIdx.forEach(i => {
+    extraIdx.forEach(i=>{
       const val = String(r[i] ?? '');
       const isWin = /승리?|win/i.test(val);
       tds.push(`<td class="extra-col${isWin?' win-cell':''}">${esc(val)}</td>`);
     });
-    rowsHtml.push(`<tr>${tds.join('')}</tr>`);
+    rows.push(`<tr>${tds.join('')}</tr>`);
   }
 
-  const fixedHead = `
-    <div class="fixed-head" id="fixedHead">
-      ${headTitles.map((t,i)=>`
-        <div class="fh-cell ${i===0?'sticky-col-head':''} ${i===winColAt?'sep-right':''}">${esc(t)}</div>
-      `).join('')}
-    </div>`;
-
-  const table = `
-    <div class="table-scroll">
-      <table>
-        <thead></thead>
-        <tbody>${rowsHtml.join('') || '<tr><td>해당 등급 데이터가 없습니다.</td></tr>'}</tbody>
-      </table>
-    </div>`;
-
-  return fixedHead + table;
+  return `
+    <table>
+      <thead><tr>${headCells.join('')}</tr></thead>
+      <tbody>${rows.join('') || '<tr><td>해당 등급 데이터가 없습니다.</td></tr>'}</tbody>
+    </table>`;
 }
 
 /* ✅ 고정 헤더 초기화/동기화 (열 너비 계산 + 가로 스크롤 sync) */
@@ -465,7 +457,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       $('rankModalTitle').textContent = `참여자 리스트 — ${rank}`;
       $('rankTableWrap').innerHTML = buildRankTable(rank);
       $('rankModal').classList.add('show');
-      initFixedHead(); // ✅ 고정 헤더 초기화
+      
     });
   });
 
@@ -478,6 +470,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
