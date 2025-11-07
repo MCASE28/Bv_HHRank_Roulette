@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>힙합 랭겜 추첨기 · GitHub Pages</title>
+  <!--
+    ✅ 이 파일은 Apps Script 없이 GitHub Pages에서 단독 실행되도록 만든 버전입니다.
+    - 데이터는 ./data/pools.json 과 ./data/stats.json(선택)에서 읽습니다.
+    - 오디오/이미지는 ./assets/ 아래에 두세요. (예: ./assets/ding.mp3)
+
+    ▷ 최소 폴더 구조 예시
+      / (repo root)
+        .nojekyll
+        index.html  ← 이 파일
+        /assets
+          ding.mp3
+          overlay.gif  (선택)
+        /data
+          pools.json   ← {"언랭":["..."],"브론즈":[...],"실버":[],"골드":[]}
+          stats.json   ← {"이름":{"apply":0,"part":0,"win":0}, ...}
+
+    ▷ 프로젝트 페이지 경로에서 동작하도록 모든 경로는 상대경로를 사용합니다.
+    ▷ SPA 라우팅이 필요하면 404.html을 추가하세요.
+  -->
+  <style>
+    :root{
+      --maxw: 1720px;
+      --card-w: 380px;
+      --box-w: 240px; --box-h: 220px;
+    }
+    html,body{margin:0;padding:0;background:transparent !important;overflow:hidden}
+    body{font-family:Arial,system-ui,"Noto Sans KR","Malgun Gothic",sans-serif;font-size:18px;text-align:center}
+    h2{margin:10px 0 6px}
+    #status{min-height:22px;margin:6px 0 2px}
+    .status-ok{color:#1a7f37}.status-err{color:#c62828}
+    #meta{font-size:13px;color:#666;min-height:18px;margin-bottom:14px}
+
+    .grid{max-width:var(--maxw);margin:6px auto;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+    .card{max-width:var(--card-w);margin:0 auto}
+    .title{font-weight:800;font-size:20px;margin-bottom:4px;display:flex;gap:8px;justify-content:center}
+    .sub{font-size:.9em;color:#555}
+    .count{font-size:16px;margin:0 0 6px}
+    .box{width:var(--box-w);height:var(--box-h);border:2px solid #000;margin:8px auto;border-radius:12px;padding:8px;text-align:left;overflow-y:auto;background:#fff}
+
+    .box .winner-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px}
+    .box .winner-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .box .winner-stats{flex:0 0 auto;color:#6B6620;font-weight:700;white-space:nowrap;text-align:right}
+
+    .card > div:last-of-type > button{font-size:20px;padding:15px 20px;border-radius:20px}
+    #copy-btn{font-size:15px;padding:10px 18px;line-height:1;min-width:180px;border-radius:10px}
+
+    /* ===== 오버레이(스피너) ===== */
+    #overlay{position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:9999; display:flex; align-items:center; justify-content:center; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .2s ease, visibility 0s linear .2s}
+    #overlay.show{opacity:1; visibility:visible; pointer-events:auto; transition:opacity .2s ease}
+    #overlay .panel{border-radius:20px; padding:16px 18px; background-image:var(--grad,linear-gradient(135deg,#44D446,#2C472C)); box-shadow:0 18px 50px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06)}
+    #overlay .chip{display:inline-block; margin:0 auto 8px; font-weight:800; font-size:12px; letter-spacing:.3px; background:#1b2330; color:#e6edf3; border-radius:999px; padding:6px 10px; text-transform:uppercase}
+    #canvasWrap{ position:relative; width:560px; height:200px; border-radius:16px; background:linear-gradient(180deg,#10161c,#0e141a); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); overflow:hidden}
+
+    /* PC/모바일 반응형 */
+    @media (max-width: 1200px){ .grid{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width: 640px){ .grid{grid-template-columns:repeat(1,1fr)} :root{--box-w: 86vw} }
+  </style>
+</head>
+<body class="notranslate">
+  <h2>힙합 랭겜 추첨기</h2>
+  <div id="status">⏳ 부팅 중…</div>
+  <div id="meta"></div>
+
+  <div class="grid">
+    <!-- 언랭 -->
+    <div class="card">
+      <div class="title"><span>언랭</span><span class="sub">(지원/참여/승리)</span></div>
+      <div id="count-언랭" class="count">(당첨: 0명 / 남음: 0명)</div>
+      <div id="box-언랭" class="box"></div>
+      <div>
+        <button id="btn-언랭" onclick="pick('언랭')" disabled>뽑기!</button>
+        <button id="reset-언랭" onclick="resetRank('언랭')" disabled>리셋</button>
+      </div>
+    </div>
+    <!-- 브론즈 -->
+    <div class="card">
+      <div class="title"><span>브론즈</span><span class="sub">(지원/참여/승리)</span></div>
+      <div id="count-브론즈" class="count">(당첨: 0명 / 남음: 0명)</div>
+      <div id="box-브론즈" class="box"></div>
+      <div>
+        <button id="btn-브론즈" onclick="pick('브론즈')" disabled>뽑기!</button>
+        <button id="reset-브론즈" onclick="resetRank('브론즈')" disabled>리셋</button>
+      </div>
+    </div>
+    <!-- 실버 -->
+    <div class="card">
+      <div class="title"><span>실버</span><span class="sub">(지원/참여/승리)</span></div>
+      <div id="count-실버" class="count">(당첨: 0명 / 남음: 0명)</div>
+      <div id="box-실버" class="box"></div>
+      <div>
+        <button id="btn-실버" onclick="pick('실버')" disabled>뽑기!</button>
+        <button id="reset-실버" onclick="resetRank('실버')" disabled>리셋</button>
+      </div>
+    </div>
+    <!-- 골드 -->
+    <div class="card">
+      <div class="title"><span>골드</span><span class="sub">(지원/참여/승리)</span></div>
+      <div id="count-골드" class="count">(당첨: 0명 / 남음: 0명)</div>
+      <div id="box-골드" class="box"></div>
+      <div>
+        <button id="btn-골드" onclick="pick('골드')" disabled>뽑기!</button>
+        <button id="reset-골드" onclick="resetRank('골드')" disabled>리셋</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin:10px 0 8px;">
+    <button id="copy-btn" onclick="copyWinners()" disabled>클립보드로 복사</button>
+  </div>
+
+  <!-- 오버레이 -->
+  <div id="overlay">
+    <div class="panel">
+      <div id="tierChip" class="chip"></div>
+      <div id="canvasWrap"><canvas id="wheelCanvas" width="560" height="200"></canvas></div>
+      <!-- (선택) GIF를 배경으로 깔고 싶다면 아래 img 활성화 후 CSS로 배치하세요. -->
+      <!-- <img id="overlayGif" src="./assets/overlay.gif" alt="overlay" /> -->
+    </div>
+  </div>
+
+  <!-- (선택) 당첨 시 효과음 -->
+  <audio id="ding" preload="auto" src="./assets/ding.mp3"></audio>
+
+<script>
+/* ===== 전역 상태 ===== */
+const RANKS=['언랭','브론즈','실버','골드'];
+let pool   ={언랭:[],브론즈:[],실버:[],골드:[]};
+let selected={언랭:[],브론즈:[],실버:[],골드:[]};
+let memberStats={};
+let siteMeta={sheetName:'', fetchedAt: null};
+
+/* ===== utils ===== */
+const $=id=>document.getElementById(id);
+const setStatus=(m,e)=>{const el=$('status'); if(!el) return; el.className=e?'status-err':'status-ok'; el.textContent=m;};
+const html=(id,h)=>{const el=$(id); if(el) el.innerHTML=h;};
+const append=(id,h)=>{const el=$(id); if(el) el.insertAdjacentHTML('beforeend',h);};
+const dis=(id,v)=>{const el=$(id); if(el) el.disabled=!!v;};
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+function labelOf(v){
+  if(v==null) return '';
+  if(typeof v==='string'||typeof v==='number') return String(v);
+  if(Array.isArray(v)) return String(v[0]??'');
+  if(typeof v==='object') return String(v.name??v['이름']??v.label??'');
+  return String(v);
+}
+
+/* ===== 표: 이름 + (a/p/w) ===== */
+function fmtStats(name){
+  const st = memberStats && memberStats[name] ? memberStats[name] : {apply:0, part:0, win:0};
+  const a = Number(st.apply)||0, p=Number(st.part)||0, w=Number(st.win)||0;
+  return `${a}/${p}/${w}`;
+}
+function renderRow(name){
+  const safe=esc(name);
+  return `<div class="winner-row"><span class="winner-name"><b>${safe}</b></span><span class="winner-stats">(${fmtStats(name)})</span></div>`;
+}
+function updateCounts(rank){
+  const picked=(selected[rank]||[]).length;
+  const remain=Math.max(0,(pool[rank]?.length||0)-picked);
+  html('count-'+rank,`(당첨: ${picked}명 / 남음: ${remain}명)`);
+}
+function totalWinners(){return RANKS.reduce((s,r)=>s+(selected[r]?.length||0),0)}
+function copyWinners(){
+  if(totalWinners()===0){ setStatus('복사할 당첨자가 없습니다.',true); return; }
+  const lines=[];
+  for(const r of RANKS){ const arr=selected[r]||[]; if(!arr.length) continue; lines.push(r,'------------',...arr.map(n=>`${n} (${fmtStats(n)})`),''); }
+  const txt=lines.join('\n').trim();
+  if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>setStatus('✅ 복사 완료',false)).catch(()=>alert(txt)); }
+  else alert(txt);
+}
+
+/* ===== 오디오 ===== */
+let audioReady=false;
+function prepAudio(){
+  try{ const a=$('ding'); if(!a) return; a.muted=false; a.volume=0.9; audioReady=true; }catch(e){ /* ignore */ }
+}
+function playDing(){ try{ const a=$('ding'); if(a && audioReady) a.currentTime=0, a.play().catch(()=>{}); }catch(e){} }
+
+/* ===== 스피너(캔버스) ===== */
+function gradByRank(rank){
+  switch(rank){
+    case '브론즈': return 'linear-gradient(135deg,#968768,#524937)';
+    case '실버' : return 'linear-gradient(135deg,#BABABA,#616060)';
+    case '골드' : return 'linear-gradient(135deg,#D1C432,#827810)';
+    default     : return 'linear-gradient(135deg,#44D446,#2C472C)';
+  }
+}
+function setupCanvas(canvas){
+  const dpr=Math.max(1,window.devicePixelRatio||1);
+  const rect=canvas.getBoundingClientRect();
+  canvas.style.width=rect.width+'px'; canvas.style.height=rect.height+'px';
+  canvas.width=Math.round(rect.width*dpr); canvas.height=Math.round(rect.height*dpr);
+  const ctx=canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.imageSmoothingEnabled=true;
+  return { ctx, w:rect.width, h:rect.height };
+}
+function drawName(ctx, text, cx, cy, maxW, targetH, weight=900){
+  let lo=14, hi=Math.min(targetH,64), best=lo;
+  ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='center'; ctx.direction='ltr';
+  ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
+  while(lo<=hi){ const mid=(lo+hi)>>1; ctx.font=`normal ${weight} ${mid}px Arial, \"Noto Sans KR\", sans-serif`;
+    const w=ctx.measureText(text).width; if(w<=maxW){best=mid; lo=mid+1;} else hi=mid-1; }
+  ctx.font=`normal ${weight} ${best}px Arial, \"Noto Sans KR\", sans-serif`;
+  const x=Math.round(cx)+0.5, y=Math.round(cy)+0.5; ctx.fillText(text,x,y); ctx.restore();
+}
+let LAST_SPIN_MODE=null;
+function pickStopMode(){
+  const modes=['exact','nudgeForward','nudgeBackward'];
+  let m=modes[Math.floor(Math.random()*modes.length)];
+  if(m===LAST_SPIN_MODE) m=modes[(modes.indexOf(m)+1)%modes.length];
+  LAST_SPIN_MODE=m; return m;
+}
+function canvasSpin(names, winner, opts, onDone){
+  const overlay=$('overlay'); const canvas=$('wheelCanvas');
+  const { ctx, w, h }=setupCanvas(canvas); const centerY=h/2;
+  const rowH=opts.rowH||40, gap=opts.gap||12, step=rowH+gap;
+  const accelMs=opts.accelMs??500, steadyMs=opts.steadyMs??900, decelMs=opts.decelMs??1100;
+  const shakeMs=260, nudgeMs=300, shakeAmp=8;
+  const easeOutCubic=t=>1-Math.pow(1-t,3);
+
+  const L=Math.max(1,names.length); const startIdx=Math.floor(Math.random()*L); const winIdx=names.indexOf(winner);
+  const mode=pickStopMode(); let preIdx=winIdx, nudgeDir=0;
+  if(mode==='nudgeForward'){ preIdx=(winIdx-1+L)%L; nudgeDir=+1; }
+  if(mode==='nudgeBackward'){ preIdx=(winIdx+1)%L;  nudgeDir=-1; }
+
+  const cycles=4;
+  const idxDiffPre=((preIdx-startIdx)%L+L)%L;
+  const baseTotalShift=(cycles*L+idxDiffPre)*step;
+
+  const spinTotal=accelMs+steadyMs+decelMs;
+  const extraTotal=(nudgeDir===0?0:(shakeMs+nudgeMs));
+
+  function drawCenterGuides(){
+    ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1;
+    const pad=12, yA=Math.round(centerY-step/2)+0.5, yB=Math.round(centerY+step/2)+0.5;
+    ctx.beginPath(); ctx.moveTo(pad,yA); ctx.lineTo(w-pad,yA); ctx.moveTo(pad,yB); ctx.lineTo(w-pad,yB); ctx.stroke(); ctx.restore();
+  }
+
+  function renderFrame(now, t0){
+    const t=now-t0; let dist=0;
+    if(t<=spinTotal){
+      if(t<=accelMs){ const k=t/accelMs; dist=baseTotalShift*(k*0.2); }
+      else if(t<=accelMs+steadyMs){ const k=(t-accelMs)/steadyMs; dist=baseTotalShift*(0.2+0.5*k); }
+      else { const k=(t-accelMs-steadyMs)/decelMs; dist=baseTotalShift*(0.7+0.3*easeOutCubic(Math.min(1,k))); }
+    } else if(nudgeDir!==0 && t<=spinTotal+shakeMs){
+      const k=(t-spinTotal)/shakeMs; dist=baseTotalShift+Math.sin(k*Math.PI*2.0)*shakeAmp;
+    } else if(nudgeDir!==0 && t<=spinTotal+shakeMs+nudgeMs){
+      const k=(t-spinTotal-shakeMs)/nudgeMs; dist=baseTotalShift+(nudgeDir*step)*easeOutCubic(Math.min(1,k));
+    } else {
+      dist=baseTotalShift+(nudgeDir*step);
+    }
+
+    ctx.clearRect(0,0,w,h);
+    const shiftRows=dist/step, baseIdx=Math.floor(shiftRows), frac=shiftRows-baseIdx;
+
+    for(let k=-3;k<=+3;k++){
+      const idx=(startIdx+baseIdx+k+L)%L; const name=names[idx];
+      const y=centerY-(k-frac)*step;
+      const ady=Math.abs(k-frac); let scale=0.6, alpha=0.45;
+      if(ady<=0.5){ scale=1.0; alpha=1.0; } else if(ady<=1.5){ scale=0.8; alpha=0.75; }
+      ctx.save(); ctx.globalAlpha=alpha;
+      if(scale>=0.95){ ctx.shadowColor='rgba(0,0,0,0.55)'; ctx.shadowBlur=10; ctx.shadowOffsetY=3; }
+      else { ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0; }
+      ctx.fillStyle='#fff';
+      drawName(ctx, name, w/2, y, w*0.86, rowH*scale, 900);
+      ctx.restore();
+    }
+    drawCenterGuides();
+
+    const endTime=spinTotal+extraTotal;
+    if(t<endTime){ requestAnimationFrame(n2=>renderFrame(n2,t0)); }
+    else {
+      playDing();
+      setTimeout(()=>{ overlay.classList.remove('show'); onDone&&onDone(); }, opts.waitMs ?? 1800);
+    }
+  }
+  requestAnimationFrame(t0=>renderFrame(t0,t0));
+}
+
+function showOverlayWithName(rank, winner, done){
+  const names=(pool[rank]||[]).map(labelOf).map(s=>String(s||'').trim()).filter(Boolean);
+  $('overlay').style.setProperty('--grad', gradByRank(rank));
+  $('tierChip').textContent=(rank==='브론즈'?'BRONZE':rank==='실버'?'SILVER':rank==='골드'?'GOLD':rank);
+  $('overlay').classList.add('show');
+  canvasSpin(names.length?names:[winner], String(winner), { accelMs: 500, steadyMs: 900, decelMs: 1100, rowH: 40, gap: 12, waitMs: 1800 }, done);
+}
+
+/* ===== pick/reset & 부팅 ===== */
+function pick(rank){
+  try{
+    const btn=$('btn-'+rank); if(!btn||btn.disabled) return; btn.disabled=true;
+    prepAudio(); // 사용자 제스처 직후 오디오 준비(오토플레이 허용)
+
+    const remain=(pool[rank]||[]).map(labelOf).filter(n=>n && !(selected[rank]||[]).includes(n));
+    if(!remain.length){ setStatus(`⚠️ ${rank} 인원이 없습니다.`,true); btn.disabled=false; return; }
+    const winner=remain[Math.floor(Math.random()*remain.length)];
+    showOverlayWithName(rank, winner, ()=>{
+      (selected[rank]=selected[rank]||[]).push(winner);
+      append('box-'+rank, renderRow(winner));
+      updateCounts(rank);
+      const still=(pool[rank]?.length||0)-(selected[rank]?.length||0);
+      btn.disabled=(still===0);
+      dis('copy-btn', totalWinners()===0);
+      setStatus(`${rank} → ${winner} 당첨!`, false);
+    });
+  }catch(e){ setStatus('❌ pick 오류: '+e,true); }
+}
+function resetRank(rank){
+  selected[rank]=[]; html('box-'+rank,''); updateCounts(rank);
+  dis('btn-'+rank,(pool[rank]?.length||0)===0); dis('copy-btn', totalWinners()===0);
+  setStatus(`${rank} 리셋 완료`, false);
+}
+
+function preReset(){
+  setStatus('⏳ 부팅 중…',false); $('meta').textContent='';
+  for(const r of RANKS){ html('box-'+r,''); html('count-'+r,'(당첨: 0명 / 남음: 0명)'); dis('btn-'+r,true); dis('reset-'+r,true); }
+  dis('copy-btn',true);
+}
+
+/* ===== 데이터 로드( GitHub Pages ) =====
+   ./data/pools.json  과  ./data/stats.json(선택) 을 fetch로 읽어옵니다.
+   pools.json 예시:
+   {
+     "언랭": ["이름1","이름2"],
+     "브론즈": ["..."],
+     "실버": [],
+     "골드": []
+   }
+   stats.json 예시:
+   { "이름1": {"apply":1, "part":1, "win":0}, "이름2": {"apply":3, "part":2, "win":1} }
+*/
+async function loadData(){
+  try{
+    const [poolsRes, statsRes] = await Promise.allSettled([
+      fetch('./data/pools.json', {cache:'no-store'}),
+      fetch('./data/stats.json', {cache:'no-store'})
+    ]);
+
+    if(poolsRes.status!=='fulfilled' || !poolsRes.value.ok){ throw new Error('pools.json 불러오기 실패'); }
+    const poolsJson = await poolsRes.value.json();
+
+    let statsJson = {};
+    if(statsRes.status==='fulfilled' && statsRes.value.ok){
+      try{ statsJson = await statsRes.value.json(); }catch{ statsJson={}; }
+    }
+
+    pool = {
+      '언랭': Array.isArray(poolsJson['언랭']) ? poolsJson['언랭'] : [],
+      '브론즈': Array.isArray(poolsJson['브론즈']) ? poolsJson['브론즈'] : [],
+      '실버': Array.isArray(poolsJson['실버']) ? poolsJson['실버'] : [],
+      '골드': Array.isArray(poolsJson['골드']) ? poolsJson['골드'] : []
+    };
+    memberStats = (statsJson && typeof statsJson==='object') ? statsJson : {};
+
+    // 메타 표기(선택) — pools.json 안에 meta가 있으면 사용
+    if(poolsJson.meta){ siteMeta.sheetName=poolsJson.meta.sheetName||''; siteMeta.fetchedAt=poolsJson.meta.fetchedAt||null; }
+
+    for(const r of RANKS){
+      const remain=(pool[r]||[]).length;
+      html('count-'+r,`(당첨: 0명 / 남음: ${remain}명)`); dis('btn-'+r, remain===0); dis('reset-'+r,false);
+    }
+    dis('copy-btn',true);
+    if(siteMeta.sheetName || siteMeta.fetchedAt){
+      const when = siteMeta.fetchedAt ? new Date(siteMeta.fetchedAt).toLocaleString() : '';
+      $('meta').textContent = `${siteMeta.sheetName?('탭: '+siteMeta.sheetName+' · '):''}${when}`;
+    }
+    setStatus('✅ 준비 완료', false);
+  }catch(e){
+    setStatus('❌ 데이터 로드 실패: '+ e.message, true);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  preReset();
+  loadData();
+});
+</script>
+</body>
+</html>
