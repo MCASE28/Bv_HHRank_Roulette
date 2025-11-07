@@ -40,34 +40,31 @@
     /* 테이블: 가로로 ‘필요한 만큼만’ 넓어지고, 컨테이너는 스크롤 */
     .table-wrap{min-width:100%}              /* 래퍼가 컨테이너 너비는 채우게 */
     table{
-      border-collapse:separate;              /* sticky와 경계선 깨짐 방지 */
-      border-spacing:0;
-      width:max-content;                     /* 내용만큼만 가로 확장 */
-      min-width:100%;                        /* 내용이 적을 땐 컨테이너 폭 채움 */
-      font-size:14px;
-      margin:0;
+      border-collapse: separate;
+      border-spacing: 0;
+      /* width: max-content;   ← 삭제 */
+      /* min-width: 100%;      ← 삭제 */
+      width: 100%;              /* ✅ */
+      table-layout: fixed;      /* ✅ 컬럼폭 고정 */
+      font-size: 14px;
+      margin: 0;
     }
     th,td{
-      border:1px solid #e1e4e8;
-      padding:8px 10px;
-      text-align:left;
-      white-space:nowrap;                    /* 셀 줄바꿈 방지 => 불필요한 무한 확장 방지 */
-      background:#fff;
-      background-clip:padding-box;
+      box-sizing: border-box;   /* ✅ 스크롤바/보더로 인한 오차 방지 */
     }
   
     /* ① 상단 헤더 고정 */
     thead th{
-      position:sticky;
-      top:0;                                 /* 헤더 고정 */
-      z-index:3;
-      background:#f6f8fa;                    /* 헤더 배경 */
-      box-shadow:0 1px 0 rgba(0,0,0,.04);
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: #f6f8fa;
+      box-shadow: 0 1px 0 rgba(0,0,0,.04);
     }
   
     /* ② 좌측 '이름' 고정 (헤더/바디 공통) */
     .sticky-col{position:sticky;left:0;z-index:2;background:#fff}
-    .sticky-col-head{left:0;z-index:4;background:#f6f8fa;box-shadow:1px 0 0 rgba(0,0,0,0.06)}
+    .sticky-col-head{ position: sticky; left:0; z-index:4; background:#f6f8fa; box-shadow:1px 0 0 rgba(0,0,0,.06); }
   
     /* 구분선/강조 */
     .sep-right{border-right-width:3px !important;border-right-color:#1f2a44 !important} /* 승리 열 오른쪽 굵은 선 */
@@ -443,6 +440,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
