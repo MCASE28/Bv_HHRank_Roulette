@@ -240,7 +240,7 @@ function pick(rank){
 }
 function resetRank(rank){
   selected[rank]=[]; html('box-'+rank,''); updateCounts(rank);
-  dis('btn-'+rank',(pool[rank]?.length||0)===0); dis('copy-btn', totalWinners()===0);
+  dis('btn-'+rank,(pool[rank]?.length||0)===0); dis('copy-btn', totalWinners()===0);
   setStatus(`${rank} 리셋 완료`, false);
 }
 function preReset(){
@@ -366,3 +366,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
