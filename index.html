@@ -11,6 +11,9 @@
       --card-w:380px;
       --box-w:240px;
       --box-h:220px;
+  
+      /* 고정 헤더 높이 (본문 표 상단 여백 계산에 사용) */
+      --fixed-head-h: 44px;
     }
   
     html,body{margin:0;padding:0;background:transparent !important;overflow:hidden}
@@ -98,7 +101,7 @@
     .modal-title{font-weight:800;font-size:18px}
     .modal-close{appearance:none;border:0;background:transparent;font-size:22px;line-height:1;padding:8px 10px;cursor:pointer}
   
-    /* 모달 본문: 스크롤 컨테이너 + sticky 천장으로 헤더 위 비침 완전 차단 */
+    /* 모달 본문: 스크롤 컨테이너 */
     .modal-body{
       padding:10px 14px;
       overflow:auto;
@@ -106,25 +109,52 @@
       background:#fff;
       position:relative;
     }
-    .modal-body::before{
-      content:"";
-      position:sticky;
-      top:0; left:0; right:0;
-      display:block;
-      height:14px;               /* ↓ thead th { top:14px }와 동일 */
+  
+    /* ================================
+       고정 헤더(분리 렌더) 레이어
+       - 실제 thead는 숨기고(높이 제거),
+       - 고정 헤더는 별도 .fixed-head 에 그린다.
+       ================================= */
+    .fixed-head{
+      position:sticky; top:0; left:0; right:0;
+      height:var(--fixed-head-h);
+      z-index:20;
       background:#fff;
-      z-index:10;
-      pointer-events:none;
+      display:flex; align-items:stretch;  /* 셀들을 가로로 나란히 */
+      border-bottom:1px solid #e1e4e8;
+      box-shadow:0 1px 0 rgba(0,0,0,.04);
+      overflow:hidden;                    /* 가로 스크롤 동기화는 JS가 수행 */
+    }
+    .fixed-head .fh-cell{
+      display:flex; align-items:center;
+      padding:8px 10px;
+      font-size:14px; font-weight:700;
+      background:#f6f8fa;
+      border-right:1px solid #e1e4e8;
+      /* ⬇⬇⬇ 열 너비는 JS가 아래 속성에 'px'로 채웁니다 ⬇⬇⬇ */
+      /* width: <JS가 채움>; min-width: <JS>; max-width: <JS>; */
+      white-space:nowrap;
+    }
+    .fixed-head .fh-cell.sticky-col-head{
+      position:sticky; left:0; z-index:22;
+      box-shadow:1px 0 0 rgba(0,0,0,0.06);
+    }
+    .fixed-head .fh-cell.sep-right{
+      border-right-width:3px !important; border-right-color:#1f2a44 !important;
     }
   
-    /* 테이블 */
+    /* 표 스크롤 영역: 고정 헤더 높이만큼 위 여백을 준다 */
+    .table-scroll{ padding-top: var(--fixed-head-h); }
+  
+    /* 실제 표: thead는 숨겨서 공간을 없앤다(고정 헤더가 대신함) */
     table{
-      border-collapse:separate;  /* collapse 쓰면 비침 생김 */
+      border-collapse:separate;
       border-spacing:0;
       width:100%;
       font-size:14px;
       margin:0;
     }
+    thead{ display:none; } /* ⛔ 실제 thead 숨김 (JS 고정헤더 사용) */
     th,td{
       border:1px solid #e1e4e8;
       padding:8px 10px;
@@ -134,22 +164,9 @@
       background-clip:padding-box;
     }
   
-    /* sticky 헤더: 천장 높이만큼 내림 */
-    thead th{
-      position:sticky;
-      top:14px;                  /* ↑ .modal-body::before height와 동일 */
-      z-index:4;
-      background:#f6f8fa;
-      border-top-color:#fff;     /* 1px 틈 보정 */
-      box-shadow:0 1px 0 rgba(0,0,0,.04);
-    }
-  
     /* 첫 열(이름) 고정 */
     .sticky-col{ position:sticky; left:0; z-index:2; background:#fff; }
-    .sticky-col-head{
-      left:0; z-index:6; background:#f6f8fa;
-      box-shadow:1px 0 0 rgba(0,0,0,0.06);
-    }
+    .sticky-col.sticky-col-body{ box-shadow:1px 0 0 rgba(0,0,0,0.06); }
   
     /* 승리 열 오른쪽 굵은 구분선 */
     .sep-right{ border-right-width:3px !important; border-right-color:#1f2a44 !important; }
@@ -480,6 +497,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
