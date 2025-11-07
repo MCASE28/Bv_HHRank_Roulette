@@ -6,194 +6,177 @@
   <title>힙합 랭겜 추첨기</title>
   <link rel="icon" href="./assets/favicon.ico">
   <style>
-    :root{
-      --maxw:1720px;
-      --card-w:380px;
-      --box-w:240px;
-      --box-h:220px;
-  
-      /* 고정 헤더 높이 (본문 표 상단 여백 계산에 사용) */
-      --fixed-head-h: 44px;
-    }
-  
-    html,body{margin:0;padding:0;background:transparent !important;overflow:hidden}
-    body{
-      font-family:Arial,system-ui,"Noto Sans KR","Malgun Gothic",sans-serif;
-      font-size:18px;
-      text-align:center;
-    }
-    h2{margin:10px 0 6px}
-    #status{min-height:22px;margin:6px 0 2px}
-    .status-ok{color:#1a7f37}
-    .status-err{color:#c62828}
-    #meta{font-size:13px;color:#666;min-height:18px;margin-bottom:14px}
-  
-    /* 상단 액션 */
-    .actions{margin:6px 0 12px;}
-    .btn{
-      appearance:none;border:1px solid #d0d7de;background:#fff;border-radius:8px;
-      padding:10px 14px;font-size:14px;cursor:pointer
-    }
-    .btn:hover{background:#f6f8fa}
-  
-    /* 랭크 카드 그리드 */
-    .grid{
-      max-width:var(--maxw);margin:6px auto;
-      display:grid;grid-template-columns:repeat(4,1fr);gap:18px
-    }
-    .card{max-width:var(--card-w);margin:0 auto}
-    .title{
-      font-weight:800;font-size:20px;margin-bottom:4px;
-      display:flex;gap:8px;justify-content:center;align-items:center;
-      cursor:pointer;user-select:none
-    }
-    .title:hover{opacity:.85}
-    .sub{font-size:.9em;color:#555}
-    .count{font-size:16px;margin:0 0 6px}
-    .box{
-      width:var(--box-w);height:var(--box-h);
-      border:2px solid #000;margin:8px auto;border-radius:12px;
-      padding:8px;text-align:left;overflow-y:auto;background:#fff
-    }
-    .box .winner-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px}
-    .box .winner-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .box .winner-stats{flex:0 0 auto;color:#6B6620;font-weight:700;white-space:nowrap;text-align:right}
-    .card > div:last-of-type > button{font-size:20px;padding:15px 20px;border-radius:20px}
-    #copy-btn{font-size:15px;padding:10px 18px;line-height:1;min-width:180px;border-radius:10px}
-  
-    /* 추첨 오버레이(스피너) */
-    #overlay{
-      position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;
-      display:flex;align-items:center;justify-content:center;
-      opacity:0;visibility:hidden;pointer-events:none;
-      transition:opacity .2s ease,visibility 0s linear .2s
-    }
-    #overlay.show{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s ease}
-    #overlay .panel{
-      border-radius:20px;padding:16px 18px;
-      background-image:var(--grad,linear-gradient(135deg,#44D446,#2C472C));
-      box-shadow:0 18px 50px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06)
-    }
-    #overlay .chip{
-      display:inline-block;margin:0 auto 8px;font-weight:800;font-size:12px;letter-spacing:.3px;
-      background:#1b2330;color:#e6edf3;border-radius:999px;padding:6px 10px;text-transform:uppercase
-    }
-    #canvasWrap{
-      position:relative;width:560px;height:200px;border-radius:16px;
-      background:linear-gradient(180deg,#10161c,#0e141a);
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);overflow:hidden
-    }
-  
-    /* 랭크 팝업 모달 */
-    #rankModal{
-      position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;
-      display:none;align-items:center;justify-content:center;padding:24px
-    }
-    #rankModal.show{display:flex}
-    .modal-card{
-      background:#fff;max-width:1100px;width:95vw;max-height:85vh;border-radius:14px;
-      box-shadow:0 18px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden
-    }
-    .modal-header{
-      padding:12px 16px;border-bottom:1px solid #eaeef2;
-      display:flex;align-items:center;justify-content:space-between
-    }
-    .modal-title{font-weight:800;font-size:18px}
-    .modal-close{appearance:none;border:0;background:transparent;font-size:22px;line-height:1;padding:8px 10px;cursor:pointer}
-  
-    /* 모달 본문: 스크롤 컨테이너 */
-    .modal-body{
-      padding:10px 14px;
-      overflow:auto;
-      max-height:85vh;
-      background:#fff;
-      position:relative;
-    }
-  
-    /* ================================
-       고정 헤더(분리 렌더) 레이어
-       - 실제 thead는 숨기고(높이 제거),
-       - 고정 헤더는 별도 .fixed-head 에 그린다.
-       ================================= */
-    .fixed-head{
-      position:sticky; top:0; left:0; right:0;
-      height:var(--fixed-head-h);
-      z-index:20;
-      background:#fff;
-      display:flex; align-items:stretch;  /* 셀들을 가로로 나란히 */
-      border-bottom:1px solid #e1e4e8;
-      box-shadow:0 1px 0 rgba(0,0,0,.04);
-      overflow:hidden;                    /* 가로 스크롤 동기화는 JS가 수행 */
-    }
-    .fixed-head .fh-cell{
-      display:flex; align-items:center;
-      padding:8px 10px;
-      font-size:14px; font-weight:700;
-      background:#f6f8fa;
-      border-right:1px solid #e1e4e8;
-      /* ⬇⬇⬇ 열 너비는 JS가 아래 속성에 'px'로 채웁니다 ⬇⬇⬇ */
-      /* width: <JS가 채움>; min-width: <JS>; max-width: <JS>; */
-      white-space:nowrap;
-    }
-    .fixed-head .fh-cell.sticky-col-head{
-      position:sticky; left:0; z-index:22;
-      box-shadow:1px 0 0 rgba(0,0,0,0.06);
-    }
-    .fixed-head .fh-cell.sep-right{
-      border-right-width:3px !important; border-right-color:#1f2a44 !important;
-    }
-  
-    /* 표 스크롤 영역: 고정 헤더 높이만큼 위 여백을 준다 */
-    .table-scroll{ padding-top: var(--fixed-head-h); }
-  
-    /* 실제 표: thead는 숨겨서 공간을 없앤다(고정 헤더가 대신함) */
-    table{
-      border-collapse:separate;
-      border-spacing:0;
-      width:100%;
-      font-size:14px;
-      margin:0;
-    }
-    thead{ display:none; } /* ⛔ 실제 thead 숨김 (JS 고정헤더 사용) */
-    th,td{
-      border:1px solid #e1e4e8;
-      padding:8px 10px;
-      text-align:left;
-      white-space:nowrap;
-      background:#fff;
-      background-clip:padding-box;
-    }
-  
-    /* 첫 열(이름) 고정 */
-    .sticky-col{ position:sticky; left:0; z-index:2; background:#fff; }
-    .sticky-col.sticky-col-body{ box-shadow:1px 0 0 rgba(0,0,0,0.06); }
-  
-    /* 승리 열 오른쪽 굵은 구분선 */
-    .sep-right{ border-right-width:3px !important; border-right-color:#1f2a44 !important; }
-  
-    /* 1회/2회/... 승리 셀 강조 */
-    .extra-col.win-cell{ background:#fff8d6; }
-  
-    /* 등급 배지(남아있는 곳에서 사용) */
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
-    .badge.unrank{background:#d9f2d9}
-    .badge.bronze{background:#eadcc5}
-    .badge.silver{background:#e3e3e3}
-    .badge.gold{background:#efe59d}
-  
-    /* 반응형 */
-    @media (max-width:1200px){ .grid{grid-template-columns:repeat(2,1fr)} }
-    @media (max-width:640px){ .grid{grid-template-columns:repeat(1,1fr)} :root{--box-w:86vw} }
+  :root{
+    --maxw:1720px;
+    --card-w:380px;
+    --box-w:240px;
+    --box-h:220px;
+    /* 고정 헤더 높이 (본문 표 상단 여백 계산에 사용) */
+    --fixed-head-h: 44px;
+  }
+  html,body{margin:0;padding:0;background:transparent !important;overflow:hidden}
+  body{
+    font-family:Arial,system-ui,"Noto Sans KR","Malgun Gothic",sans-serif;
+    font-size:18px;
+    text-align:center;
+  }
+  h2{margin:10px 0 6px}
+  #status{min-height:22px;margin:6px 0 2px}
+  .status-ok{color:#1a7f37}
+  .status-err{color:#c62828}
+  #meta{font-size:13px;color:#666;min-height:18px;margin-bottom:14px}
+  /* 상단 액션 */
+  .actions{margin:6px 0 12px;}
+  .btn{
+    appearance:none;border:1px solid #d0d7de;background:#fff;border-radius:8px;
+    padding:10px 14px;font-size:14px;cursor:pointer
+  }
+  .btn:hover{background:#f6f8fa}
+  /* 랭크 카드 그리드 */
+  .grid{
+    max-width:var(--maxw);margin:6px auto;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:18px
+  }
+  .card{max-width:var(--card-w);margin:0 auto}
+  .title{
+    font-weight:800;font-size:20px;margin-bottom:4px;
+    display:flex;gap:8px;justify-content:center;align-items:center;
+    cursor:pointer;user-select:none
+  }
+  .title:hover{opacity:.85}
+  .sub{font-size:.9em;color:#555}
+  .count{font-size:16px;margin:0 0 6px}
+  .box{
+    width:var(--box-w);height:var(--box-h);
+    border:2px solid #000;margin:8px auto;border-radius:12px;
+    padding:8px;text-align:left;overflow-y:auto;background:#fff
+  }
+  .box .winner-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px}
+  .box .winner-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .box .winner-stats{flex:0 0 auto;color:#6B6620;font-weight:700;white-space:nowrap;text-align:right}
+  .card > div:last-of-type > button{font-size:20px;padding:15px 20px;border-radius:20px}
+  #copy-btn{font-size:15px;padding:10px 18px;line-height:1;min-width:180px;border-radius:10px}
+  /* 추첨 오버레이(스피너) */
+  #overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;visibility:hidden;pointer-events:none;
+    transition:opacity .2s ease,visibility 0s linear .2s
+  }
+  #overlay.show{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s ease}
+  #overlay .panel{
+    border-radius:20px;padding:16px 18px;
+    background-image:var(--grad,linear-gradient(135deg,#44D446,#2C472C));
+    box-shadow:0 18px 50px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06)
+  }
+  #overlay .chip{
+    display:inline-block;margin:0 auto 8px;font-weight:800;font-size:12px;letter-spacing:.3px;
+    background:#1b2330;color:#e6edf3;border-radius:999px;padding:6px 10px;text-transform:uppercase
+  }
+  #canvasWrap{
+    position:relative;width:560px;height:200px;border-radius:16px;
+    background:linear-gradient(180deg,#10161c,#0e141a);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);overflow:hidden
+  }
+  /* 랭크 팝업 모달 */
+  #rankModal{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;
+    display:none;align-items:center;justify-content:center;padding:24px
+  }
+  #rankModal.show{display:flex}
+  .modal-card{
+    background:#fff;max-width:1100px;width:95vw;max-height:85vh;border-radius:14px;
+    box-shadow:0 18px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden
+  }
+  .modal-header{
+    padding:12px 16px;border-bottom:1px solid #eaeef2;
+    display:flex;align-items:center;justify-content:space-between
+  }
+  .modal-title{font-weight:800;font-size:18px}
+  .modal-close{appearance:none;border:0;background:transparent;font-size:22px;line-height:1;padding:8px 10px;cursor:pointer}
+  /* 모달 본문: 스크롤 컨테이너 */
+  .modal-body{
+    padding:10px 14px;
+    overflow:auto;
+    max-height:85vh;
+    background:#fff;
+    position:relative;
+  }
+  /* ================================
+     고정 헤더(분리 렌더) 레이어
+     - 실제 thead는 숨기고(높이 제거),
+     - 고정 헤더는 별도 .fixed-head 에 그린다.
+     ================================= */
+  .fixed-head{
+    position:sticky; top:0; left:0; right:0;
+    height:var(--fixed-head-h);
+    z-index:20;
+    background:#fff;
+    display:flex; align-items:stretch;
+    border-bottom:1px solid #e1e4e8;
+    box-shadow:0 1px 0 rgba(0,0,0,.04);
+    overflow:hidden;
+  }
+  .fixed-head .fh-cell{
+    display:flex; align-items:center;
+    padding:8px 10px;
+    font-size:14px; font-weight:700;
+    background:#f6f8fa;
+    border-right:1px solid #e1e4e8;
+    /* ⬇⬇⬇ 열 너비는 JS가 아래 속성에 'px'로 채웁니다 ⬇⬇⬇ */
+    /* width: <JS가 채움>; min-width: <JS>; max-width: <JS>; */
+    white-space:nowrap;
+  }
+  .fixed-head .fh-cell.sticky-col-head{
+    position:sticky; left:0; z-index:22;
+    box-shadow:1px 0 0 rgba(0,0,0,0.06);
+  }
+  .fixed-head .fh-cell.sep-right{
+    border-right-width:3px !important; border-right-color:#1f2a44 !important;
+  }
+  /* 표 스크롤 영역: 고정 헤더 높이만큼 위 여백을 준다 */
+  .table-scroll{ padding-top: var(--fixed-head-h); }
+  /* 실제 표: thead는 숨겨서 공간을 없앤다(고정 헤더가 대신함) */
+  table{
+    border-collapse:separate;
+    border-spacing:0;
+    width:100%;
+    font-size:14px;
+    margin:0;
+  }
+  thead{ display:none; } /* ⛔ 실제 thead 숨김 (JS 고정헤더 사용) */
+  th,td{
+    border:1px solid #e1e4e8;
+    padding:8px 10px;
+    text-align:left;
+    white-space:nowrap;
+    background:#fff;
+    background-clip:padding-box;
+  }
+  /* 첫 열(이름) 고정 */
+  .sticky-col{ position:sticky; left:0; z-index:2; background:#fff; }
+  .sticky-col.sticky-col-body{ box-shadow:1px 0 0 rgba(0,0,0,0.06); }
+  /* 승리 열 오른쪽 굵은 구분선 */
+  .sep-right{ border-right-width:3px !important; border-right-color:#1f2a44 !important; }
+  /* 1회/2회/... 승리 셀 강조 */
+  .extra-col.win-cell{ background:#fff8d6; }
+  /* 등급 배지(남아있는 곳에서 사용) */
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
+  .badge.unrank{background:#d9f2d9}
+  .badge.bronze{background:#eadcc5}
+  .badge.silver{background:#e3e3e3}
+  .badge.gold{background:#efe59d}
+  /* 반응형 */
+  @media (max-width:1200px){ .grid{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:640px){ .grid{grid-template-columns:repeat(1,1fr)} :root{--box-w:86vw} }
   </style>
 </head>
 <body class="notranslate">
   <h2>힙합 랭겜 추첨기</h2>
-
   <!-- 시트 열기 -->
   <div class="actions">
     <button class="btn" id="open-sheet-btn">시트 열기</button>
   </div>
-
   <div id="status">⏳ 부팅 중…</div>
   <div id="meta"></div>
 
@@ -270,8 +253,6 @@
 <script>
 /* ===== 설정(GAS 웹앱) — /exec URL로 교체 ===== */
 const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxXag4ZYrj1ttorbmcyEiZY_b82fVqNAI7RPWfukrQe4hxBnSTU2rCJyX_xVp4wIiDgsw/exec';
-
-/* 시트 열기 버튼용(필수 아님): GAS가 응답에 sheetId를 넘겨줌. */
 let SHEET_ID_FROM_GAS = null;
 
 /* ===== 전역 상태 ===== */
@@ -298,8 +279,6 @@ function copyWinners(){ if(totalWinners()===0){ setStatus('복사할 당첨자�
   const lines=[]; for(const r of RANKS){ const arr=selected[r]||[]; if(!arr.length) continue; lines.push(r,'------------',...arr.map(n=>`${n}`),''); }
   const txt=lines.join('\n').trim(); if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>setStatus('✅ 복사 완료',false)).catch(()=>alert(txt)); } else alert(txt);
 }
-
-/* 이름/등급 표준화 & 필터 */
 function _norm(s){ return String(s||'').replace(/\u00A0/g,' ').replace(/\s+/g,' ').trim(); }
 function rankNorm(s){ s=_norm(s).toLowerCase(); if(/언랭|unrank/.test(s))return '언랭'; if(/브론즈|bronze/.test(s))return '브론즈'; if(/실버|silver/.test(s))return '실버'; if(/골드|gold/.test(s))return '골드'; return ''; }
 
@@ -367,7 +346,7 @@ function pick(rank){
 }
 function resetRank(rank){
   selected[rank]=[]; html('box-'+rank,''); updateCounts(rank);
-  dis('btn-'+rank,(pool[rank]?.length||0)===0); dis('copy-btn', totalWinners()===0);
+  dis('btn-'+rank',(pool[rank]?.length||0)===0); dis('copy-btn', totalWinners()===0);
   setStatus(`${rank} 리셋 완료`, false);
 }
 function preReset(){
@@ -376,67 +355,117 @@ function preReset(){
   dis('copy-btn',true);
 }
 
-/* ===== 랭크 팝업 로직 ===== */
+/* ===== 랭크 팝업 테이블(등급 열 제외) + 고정 헤더 분리 렌더 ===== */
 function buildRankTable(rank){
   if(!statsHeader.length){ return '<div>참여자 리스트를 불러오지 못했습니다.</div>'; }
-
-  // ① 컬럼 인덱스 수집
   const hdr = statsHeader.map(h => _norm(h));
   const idxName  = hdr.findIndex(h => /^이름$|^name$/i.test(h));
-  const idxRank  = hdr.findIndex(h => /^등급$|^랭크$|^rank$/i.test(h));
+  const idxRank  = hdr.findIndex(h => /^등급$|^랭크$|^rank$/i.test(h)); // 필터용만
   const idxApply = hdr.findIndex(h => /^지원$|^apply$/i.test(h));
   const idxPart  = hdr.findIndex(h => /^참여$|^part$/i.test(h));
   const idxWin   = hdr.findIndex(h => /^승리$|^win$/i.test(h));
+  const extraIdx = []; hdr.forEach((h,i)=>{ if(/^\d+\s*회$/i.test(h)) extraIdx.push(i); });
 
-  // ② "숫자회" 패턴 열 자동 수집 (1회, 2회, 3회, ...)
-  const extraIdx = [];
-  hdr.forEach((h,i)=>{ if(/^\d+\s*회$/i.test(h)) extraIdx.push(i); });
+  const headTitles = [];
+  let winColAt = -1;
+  if(idxName>=0)  headTitles.push('이름');
+  if(idxApply>=0) headTitles.push('지원');
+  if(idxPart>=0)  headTitles.push('참여');
+  if(idxWin>=0){  winColAt = headTitles.length; headTitles.push('승리'); }
+  extraIdx.forEach(i => headTitles.push(hdr[i]));
 
-  // ③ 헤더(th) 구성 (이름은 sticky 고정, 승리 열은 오른쪽 두꺼운 구분선)
-  const ths = [];
-  if(idxName>=0)  ths.push('<th class="sticky-col-head">이름</th>');
-  if(idxApply>=0) ths.push('<th>지원</th>');
-  if(idxPart>=0)  ths.push('<th>참여</th>');
-  if(idxWin>=0)   ths.push('<th class="sep-right">승리</th>');
-  extraIdx.forEach(i => ths.push(`<th>${esc(hdr[i])}</th>`));
-
-  // ④ 행 구성(등급 필터 + 첫 열 sticky + 1회 이후 승리 칸 노란색)
   const rowsHtml = [];
   for(const r of statsRows){
-    const rankVal = idxRank>=0 ? r[idxRank] : '';
-    if(rank && rankNorm(rankVal)!==rank) continue;
-
+    const rv = idxRank>=0 ? r[idxRank] : '';
+    if(rank && rankNorm(rv)!==rank) continue;
     const tds = [];
-    if(idxName>=0)  tds.push(`<td class="sticky-col">${esc(r[idxName]||'')}</td>`);
+    if(idxName>=0)  tds.push(`<td class="sticky-col sticky-col-body">${esc(r[idxName]||'')}</td>`);
     if(idxApply>=0) tds.push(`<td>${esc(r[idxApply]||'')}</td>`);
     if(idxPart>=0)  tds.push(`<td>${esc(r[idxPart ]||'')}</td>`);
     if(idxWin>=0)   tds.push(`<td class="sep-right">${esc(r[idxWin  ]||'')}</td>`);
-
-    // 1회/2회/... : '승/승리/win' 포함 시 연노랑 강조
     extraIdx.forEach(i => {
       const val = String(r[i] ?? '');
       const isWin = /승리?|win/i.test(val);
       tds.push(`<td class="extra-col${isWin?' win-cell':''}">${esc(val)}</td>`);
     });
-
     rowsHtml.push(`<tr>${tds.join('')}</tr>`);
   }
 
-  return `
-    <table>
-      <thead><tr>${ths.join('')}</tr></thead>
-      <tbody>${
-        rowsHtml.join('') || '<tr><td colspan="'+ths.length+'">해당 등급 데이터가 없습니다.</td></tr>'
-      }</tbody>
-    </table>
-  `;
+  const fixedHead = `
+    <div class="fixed-head" id="fixedHead">
+      ${headTitles.map((t,i)=>`
+        <div class="fh-cell ${i===0?'sticky-col-head':''} ${i===winColAt?'sep-right':''}">${esc(t)}</div>
+      `).join('')}
+    </div>`;
+
+  const table = `
+    <div class="table-scroll">
+      <table>
+        <thead></thead>
+        <tbody>${rowsHtml.join('') || '<tr><td>해당 등급 데이터가 없습니다.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+
+  return fixedHead + table;
 }
-function openRankModal(rank){
-  $('rankModalTitle').textContent = `참여자 리스트 — ${rank}`;
-  $('rankTableWrap').innerHTML = buildRankTable(rank);
-  $('rankModal').classList.add('show');
+
+/* ✅ 고정 헤더 초기화/동기화 (열 너비 계산 + 가로 스크롤 sync) */
+function initFixedHead() {
+  const wrap = document.getElementById('rankTableWrap');
+  if(!wrap) return;
+  const modalBody = wrap.closest('.modal-body');
+  const fh  = wrap.querySelector('.fixed-head');
+  const tbl = wrap.querySelector('table');
+  const tbody = tbl?.tBodies?.[0];
+  if(!modalBody || !fh || !tbody) return;
+
+  const fhCells = Array.from(fh.children);
+  const rows    = Array.from(tbody.rows);
+  if(!rows.length || !fhCells.length) return;
+
+  // ── ⛳️ 열 너비 결정(여기가 '너비를 정하는 부분')
+  const colCount = Math.min(fhCells.length, rows[0].cells.length);
+  const widths = new Array(colCount).fill(0);
+
+  const sample = rows.slice(0, Math.min(40, rows.length));
+  for(const tr of sample){
+    const cells = tr.cells;
+    for(let c=0;c<colCount;c++){
+      const w = cells[c]?.getBoundingClientRect().width || 0;
+      widths[c] = Math.max(widths[c], Math.ceil(w));
+    }
+  }
+  // 헤더 라벨 폭도 고려(여유 16px)
+  for(let c=0;c<colCount;c++){
+    const labelW = Math.ceil(fhCells[c].scrollWidth + 16);
+    widths[c] = Math.max(widths[c], labelW);
+  }
+  // 적용
+  for(let c=0;c<colCount;c++){
+    const w = widths[c] + 'px';
+    fhCells[c].style.width = fhCells[c].style.minWidth = fhCells[c].style.maxWidth = w;
+  }
+  for(const tr of rows){
+    const cells = tr.cells;
+    for(let c=0;c<colCount;c++){
+      const w = widths[c] + 'px';
+      const td = cells[c]; if(!td) continue;
+      td.style.width = td.style.minWidth = td.style.maxWidth = w;
+    }
+  }
+
+  // 가로 스크롤 동기화
+  function syncX(){ fh.style.transform = `translateX(${-modalBody.scrollLeft}px)`; }
+  modalBody.addEventListener('scroll', syncX, {passive:true});
+  syncX();
+
+  // 리사이즈/줌 대응
+  let t=null;
+  const recalc=()=>{ t&&cancelAnimationFrame(t); t=requestAnimationFrame(()=>initFixedHead()); };
+  const ro = new ResizeObserver(recalc);
+  ro.observe(wrap);
+  window.addEventListener('orientationchange', recalc);
 }
-function closeRankModal(){ $('rankModal').classList.remove('show'); }
 
 /* ===== 데이터 로드(GAS) ===== */
 async function loadData(){
@@ -485,26 +514,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // 타이틀 클릭 → 랭크 팝업
   document.querySelectorAll('.title[data-rank]').forEach(el=>{
-    el.addEventListener('click', ()=> openRankModal(el.getAttribute('data-rank')));
+    el.addEventListener('click', ()=>{
+      const rank = el.getAttribute('data-rank');
+      $('rankModalTitle').textContent = `참여자 리스트 — ${rank}`;
+      $('rankTableWrap').innerHTML = buildRankTable(rank);
+      $('rankModal').classList.add('show');
+      initFixedHead(); // ✅ 고정 헤더 초기화
+    });
   });
 
   // 팝업 닫기
-  $('rankModalClose').addEventListener('click', closeRankModal);
+  $('rankModalClose').addEventListener('click', ()=>$('rankModal').classList.remove('show'));
   $('rankModal').addEventListener('click', (e)=>{
-    if(e.target.id==='rankModal') closeRankModal(); // 바깥 클릭 닫기
+    if(e.target.id==='rankModal') $('rankModal').classList.remove('show'); // 바깥 클릭 닫기
   });
 });
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
