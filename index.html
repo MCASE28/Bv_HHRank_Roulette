@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>힙합 랭겜 추첨기 · GitHub Pages</title>
+  <title>힙합 랭겜 추첨기</title>
   <style>
     :root{ --maxw:1720px; --card-w:380px; --box-w:240px; --box-h:220px; }
     html,body{margin:0;padding:0;background:transparent !important;overflow:hidden}
@@ -222,7 +222,7 @@ async function loadData(){
       dis('reset-'+r,false);
     }
     dis('copy-btn',true);
-    setStatus('✅ 준비 완료 (GAS)', false);
+    setStatus('✅ 준비 완료', false);
   }catch(e){
     setStatus('❌ 데이터 로드 실패: '+ (e.message||e), true);
     console.error(e);
@@ -237,6 +237,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
