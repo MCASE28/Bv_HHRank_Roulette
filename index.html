@@ -46,9 +46,49 @@
     .modal-title{font-weight:800;font-size:18px}
     .modal-close{appearance:none;border:0;background:transparent;font-size:22px;line-height:1;padding:8px 10px;cursor:pointer}
     .modal-body{padding:10px 14px;overflow:auto}
-    table{border-collapse:collapse;width:100%;font-size:14px}
-    th,td{border:1px solid #e1e4e8;padding:8px 10px;text-align:left;white-space:nowrap}
-    th{background:#f6f8fa;position:sticky;top:0;z-index:1}
+    table{
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      font-size: 14px;
+    }
+    th,td{
+      border:1px solid #e1e4e8;
+      padding:8px 10px;
+      text-align:middle;
+      white-space:nowrap;
+      background: #fff;
+    }
+    th{
+      background:#f6f8fa;
+      position:sticky;
+      top:0;
+      z-index:2;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    }
+    .sticky-col{ 
+      position: sticky; 
+      left: 0; 
+      z-index: 1; 
+      background: #fff; 
+    }
+    .sticky-col-head{ 
+      left: 0; 
+      z-index: 3;                 /* 헤더가 바디보다 위로 */
+      background: #f6f8fa;
+      box-shadow: 1px 0 0 rgba(0,0,0,0.06);
+    }
+    
+    /* 승리 열 오른쪽 두꺼운 경계선(승리 열에 붙임) */
+    .sep-right{
+      border-right-width: 3px !important;
+      border-right-color: #d0b200 !important; /* 골드톤 */
+    }
+    
+    /* 1회/2회/... 열: 승리 텍스트 강조 */
+    .extra-col.win-cell{
+      background: #fff8d6;        /* 연한 노란색 */
+    }
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
     .badge.unrank{background:#d9f2d9}
     .badge.bronze{background:#eadcc5}
@@ -252,7 +292,8 @@ function preReset(){
 /* ===== 랭크 팝업 로직 ===== */
 function buildRankTable(rank){
   if(!statsHeader.length){ return '<div>참여자 리스트를 불러오지 못했습니다.</div>'; }
-  // 컬럼 인덱스 결정
+
+  // ① 컬럼 인덱스 수집
   const hdr = statsHeader.map(h => _norm(h));
   const idxName  = hdr.findIndex(h => /^이름$|^name$/i.test(h));
   const idxRank  = hdr.findIndex(h => /^등급$|^랭크$|^rank$/i.test(h));
@@ -260,27 +301,27 @@ function buildRankTable(rank){
   const idxPart  = hdr.findIndex(h => /^참여$|^part$/i.test(h));
   const idxWin   = hdr.findIndex(h => /^승리$|^win$/i.test(h));
 
-  // "숫자회" 패턴 열 자동 수집
+  // ② "숫자회" 패턴 열 자동 수집 (1회, 2회, 3회, ...)
   const extraIdx = [];
   hdr.forEach((h,i)=>{ if(/^\d+\s*회$/i.test(h)) extraIdx.push(i); });
 
-  // 머릿글 구성
+  // ③ 헤더(th) 구성 (이름은 sticky 고정, 승리 열은 오른쪽 두꺼운 구분선)
   const ths = [];
-  if(idxName>=0)  ths.push('<th>이름</th>');
+  if(idxName>=0)  ths.push('<th class="sticky-col-head">이름</th>');
   if(idxRank>=0)  ths.push('<th>등급</th>');
   if(idxApply>=0) ths.push('<th>지원</th>');
   if(idxPart>=0)  ths.push('<th>참여</th>');
-  if(idxWin>=0)   ths.push('<th>승리</th>');
+  if(idxWin>=0)   ths.push('<th class="sep-right">승리</th>');
   extraIdx.forEach(i => ths.push(`<th>${esc(hdr[i])}</th>`));
 
-  // 행 필터링(등급)
+  // ④ 행 구성(등급 필터 + 첫 열 sticky + 1회 이후 승리 칸 노란색)
   const rowsHtml = [];
   for(const r of statsRows){
     const rankVal = idxRank>=0 ? r[idxRank] : '';
     if(rank && rankNorm(rankVal)!==rank) continue;
 
     const tds = [];
-    if(idxName>=0)  tds.push(`<td>${esc(r[idxName]||'')}</td>`);
+    if(idxName>=0)  tds.push(`<td class="sticky-col">${esc(r[idxName]||'')}</td>`);
     if(idxRank>=0){
       const rv = rankNorm(r[idxRank]);
       const badgeClass = rv==='언랭'?'unrank':rv==='브론즈'?'bronze':rv==='실버'?'silver':rv==='골드'?'gold':'';
@@ -288,8 +329,15 @@ function buildRankTable(rank){
     }
     if(idxApply>=0) tds.push(`<td>${esc(r[idxApply]||'')}</td>`);
     if(idxPart>=0)  tds.push(`<td>${esc(r[idxPart ]||'')}</td>`);
-    if(idxWin>=0)   tds.push(`<td>${esc(r[idxWin  ]||'')}</td>`);
-    extraIdx.forEach(i => tds.push(`<td>${esc(r[i]||'')}</td>`));
+    if(idxWin>=0)   tds.push(`<td class="sep-right">${esc(r[idxWin  ]||'')}</td>`);
+
+    // 1회/2회/... : 텍스트에 '승' 또는 '승리' 포함 시 색 강조
+    extraIdx.forEach(i => {
+      const val = String(r[i] ?? '');
+      const isWin = /승리?|win/i.test(val);
+      tds.push(`<td class="extra-col${isWin?' win-cell':''}">${esc(val)}</td>`);
+    });
+
     rowsHtml.push(`<tr>${tds.join('')}</tr>`);
   }
 
@@ -366,4 +414,5 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
