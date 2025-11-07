@@ -87,10 +87,7 @@
       display:none;align-items:center;justify-content:center;padding:24px
     }
     #rankModal.show{display:flex}
-    .modal-card{
-      background:#fff;max-width:1100px;width:95vw;max-height:85vh;border-radius:14px;
-      box-shadow:0 18px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden
-    }
+    .modal-card{ display:flex; flex-direction:column; }
     .modal-header{
       padding:12px 16px;border-bottom:1px solid #eaeef2;
       display:flex;align-items:center;justify-content:space-between
@@ -101,9 +98,9 @@
     /* 스크롤 컨테이너(본문) */
     .modal-body{
       padding:10px 14px;
-      overflow:auto;                 /* 스크롤 핵심 */
+      overflow:auto;
       max-height:85vh;
-      background:#fff;               /* 컨테이너 자체 불투명 */
+      background:#fff;
       position:relative;
     }
   
@@ -117,7 +114,7 @@
   
     /* 테이블 */
     table{
-      border-collapse:separate;      /* collapse 쓰면 비침 생김 */
+      border-collapse:separate;   /* collapse 쓰면 비침 */
       border-spacing:0;
       width:100%;
       font-size:14px;
@@ -128,29 +125,34 @@
       padding:8px 10px;
       text-align:left;
       white-space:nowrap;
-      background:#fff;               /* 각 셀도 불투명 */
-      background-clip:padding-box;   /* 경계선 겹침 방지 */
+      background:#fff;
+      background-clip:padding-box;
     }
   
     /* sticky 헤더: 천장 높이와 동일하게 붙임 */
     thead th{
       position:sticky;
-      top:12px;                      /* ← .table-ceiling의 height와 동일해야 함 */
+      top:0;                       /* 천장 div 없이 0으로 */
       z-index:4;
-      background:#f6f8fa;
-      border-top:0;
+      /* 위 12px은 흰색, 그 아래는 원래 헤더색 */
+      background:
+        linear-gradient(#fff 0 12px, #f6f8fa 12px) !important;
+      border-top-color:#fff;       /* 혹시 모를 1px 틈 보정 */
       box-shadow:0 1px 0 rgba(0,0,0,0.04);
     }
   
     /* 첫 열(이름) 고정 */
     .sticky-col{ position:sticky; left:0; z-index:2; background:#fff; }
-    .sticky-col-head{ left:0; z-index:6; background:#f6f8fa; box-shadow:1px 0 0 rgba(0,0,0,0.06); }
-  
+    .sticky-col-head{
+      left:0; z-index:6;
+      background:linear-gradient(#fff 0 12px, #f6f8fa 12px) !important;
+      box-shadow:1px 0 0 rgba(0,0,0,0.06);
+    }
     /* 승리 열 오른쪽 굵은 구분선 */
     .sep-right{ border-right-width:3px !important; border-right-color:#1f2a44 !important; }
-  
+    
     /* 1회/2회/... 승리 셀 강조 */
-    .extra-col.win-cell{ background:#fff8d6; }
+    .extra-col.win-cell{ background:#000000; }
   
     /* 등급 배지(남아있는 곳에서 사용) */
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
@@ -401,10 +403,11 @@ function buildRankTable(rank){
   }
 
   return `
-    <div class="table-ceiling"></div>
     <table>
       <thead><tr>${ths.join('')}</tr></thead>
-      <tbody>${rowsHtml.join('') || '<tr><td colspan="'+ths.length+'">해당 등급 데이터가 없습니다.</td></tr>'}</tbody>
+      <tbody>${
+        rowsHtml.join('') || '<tr><td colspan="'+ths.length+'">해당 등급 데이터가 없습니다.</td></tr>'
+      }</tbody>
     </table>
   `;
 }
@@ -474,6 +477,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
