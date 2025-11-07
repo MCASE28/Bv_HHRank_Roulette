@@ -332,16 +332,11 @@ function buildRankTable(rank){
 
     const tds = [];
     if(idxName>=0)  tds.push(`<td class="sticky-col">${esc(r[idxName]||'')}</td>`);
-    if(idxRank>=0){
-      const rv = rankNorm(r[idxRank]);
-      const badgeClass = rv==='언랭'?'unrank':rv==='브론즈'?'bronze':rv==='실버'?'silver':rv==='골드'?'gold':'';
-      tds.push(`<td><span class="badge ${badgeClass}">${esc(r[idxRank]||'')}</span></td>`);
-    }
     if(idxApply>=0) tds.push(`<td>${esc(r[idxApply]||'')}</td>`);
     if(idxPart>=0)  tds.push(`<td>${esc(r[idxPart ]||'')}</td>`);
     if(idxWin>=0)   tds.push(`<td class="sep-right">${esc(r[idxWin  ]||'')}</td>`);
 
-    // 1회/2회/... : 텍스트에 '승' 또는 '승리' 포함 시 색 강조
+    // 1회/2회/... : '승/승리/win' 포함 시 연노랑 강조
     extraIdx.forEach(i => {
       const val = String(r[i] ?? '');
       const isWin = /승리?|win/i.test(val);
@@ -355,9 +350,7 @@ function buildRankTable(rank){
     <div class="table-ceiling"></div>
     <table>
       <thead><tr>${ths.join('')}</tr></thead>
-      <tbody>${
-        rowsHtml.join('') || '<tr><td colspan="'+ths.length+'">해당 등급 데이터가 없습니다.</td></tr>'
-      }</tbody>
+      <tbody>${rowsHtml.join('') || '<tr><td colspan="'+ths.length+'">해당 등급 데이터가 없습니다.</td></tr>'}</tbody>
     </table>
   `;
 }
@@ -427,6 +420,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
