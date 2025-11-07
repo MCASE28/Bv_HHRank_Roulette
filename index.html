@@ -14,9 +14,14 @@
     .status-ok{color:#1a7f37}.status-err{color:#c62828}
     #meta{font-size:13px;color:#666;min-height:18px;margin-bottom:14px}
 
+    .actions{margin:6px 0 12px;}
+    .btn{appearance:none;border:1px solid #d0d7de;background:#fff;border-radius:8px;padding:10px 14px;font-size:14px;cursor:pointer}
+    .btn:hover{background:#f6f8fa}
+
     .grid{max-width:var(--maxw);margin:6px auto;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
     .card{max-width:var(--card-w);margin:0 auto}
-    .title{font-weight:800;font-size:20px;margin-bottom:4px;display:flex;gap:8px;justify-content:center}
+    .title{font-weight:800;font-size:20px;margin-bottom:4px;display:flex;gap:8px;justify-content:center;align-items:center;cursor:pointer;user-select:none}
+    .title:hover{opacity:.85}
     .sub{font-size:.9em;color:#555}
     .count{font-size:16px;margin:0 0 6px}
     .box{width:var(--box-w);height:var(--box-h);border:2px solid #000;margin:8px auto;border-radius:12px;padding:8px;text-align:left;overflow-y:auto;background:#fff}
@@ -26,12 +31,29 @@
     .card > div:last-of-type > button{font-size:20px;padding:15px 20px;border-radius:20px}
     #copy-btn{font-size:15px;padding:10px 18px;line-height:1;min-width:180px;border-radius:10px}
 
-    /* 오버레이(스피너) */
+    /* 추첨 오버레이(스피너) */
     #overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility 0s linear .2s}
     #overlay.show{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s ease}
     #overlay .panel{border-radius:20px;padding:16px 18px;background-image:var(--grad,linear-gradient(135deg,#44D446,#2C472C));box-shadow:0 18px 50px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06)}
     #overlay .chip{display:inline-block;margin:0 auto 8px;font-weight:800;font-size:12px;letter-spacing:.3px;background:#1b2330;color:#e6edf3;border-radius:999px;padding:6px 10px;text-transform:uppercase}
     #canvasWrap{position:relative;width:560px;height:200px;border-radius:16px;background:linear-gradient(180deg,#10161c,#0e141a);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);overflow:hidden}
+
+    /* 랭크 팝업 모달 */
+    #rankModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;display:none;align-items:center;justify-content:center;padding:24px}
+    #rankModal.show{display:flex}
+    .modal-card{background:#fff;max-width:1100px;width:95vw;max-height:85vh;border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
+    .modal-header{padding:12px 16px;border-bottom:1px solid #eaeef2;display:flex;align-items:center;justify-content:space-between}
+    .modal-title{font-weight:800;font-size:18px}
+    .modal-close{appearance:none;border:0;background:transparent;font-size:22px;line-height:1;padding:8px 10px;cursor:pointer}
+    .modal-body{padding:10px 14px;overflow:auto}
+    table{border-collapse:collapse;width:100%;font-size:14px}
+    th,td{border:1px solid #e1e4e8;padding:8px 10px;text-align:left;white-space:nowrap}
+    th{background:#f6f8fa;position:sticky;top:0;z-index:1}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
+    .badge.unrank{background:#d9f2d9}
+    .badge.bronze{background:#eadcc5}
+    .badge.silver{background:#e3e3e3}
+    .badge.gold{background:#efe59d}
 
     @media (max-width:1200px){ .grid{grid-template-columns:repeat(2,1fr)} }
     @media (max-width:640px){ .grid{grid-template-columns:repeat(1,1fr)} :root{--box-w:86vw} }
@@ -39,13 +61,18 @@
 </head>
 <body class="notranslate">
   <h2>힙합 랭겜 추첨기</h2>
+
+  <!-- 시트 열기 -->
+  <div class="actions">
+    <button class="btn" id="open-sheet-btn">시트 열기</button>
+  </div>
+
   <div id="status">⏳ 부팅 중…</div>
   <div id="meta"></div>
-  
 
   <div class="grid">
     <div class="card">
-      <div class="title"><span>언랭</span><span class="sub">(지원/참여/승리)</span></div>
+      <div class="title" data-rank="언랭"><span>언랭</span><span class="sub">(지원/참여/승리)</span></div>
       <div id="count-언랭" class="count">(당첨: 0명 / 남음: 0명)</div>
       <div id="box-언랭" class="box"></div>
       <div>
@@ -55,7 +82,7 @@
     </div>
 
     <div class="card">
-      <div class="title"><span>브론즈</span><span class="sub">(지원/참여/승리)</span></div>
+      <div class="title" data-rank="브론즈"><span>브론즈</span><span class="sub">(지원/참여/승리)</span></div>
       <div id="count-브론즈" class="count">(당첨: 0명 / 남음: 0명)</div>
       <div id="box-브론즈" class="box"></div>
       <div>
@@ -65,7 +92,7 @@
     </div>
 
     <div class="card">
-      <div class="title"><span>실버</span><span class="sub">(지원/참여/승리)</span></div>
+      <div class="title" data-rank="실버"><span>실버</span><span class="sub">(지원/참여/승리)</span></div>
       <div id="count-실버" class="count">(당첨: 0명 / 남음: 0명)</div>
       <div id="box-실버" class="box"></div>
       <div>
@@ -75,7 +102,7 @@
     </div>
 
     <div class="card">
-      <div class="title"><span>골드</span><span class="sub">(지원/참여/승리)</span></div>
+      <div class="title" data-rank="골드"><span>골드</span><span class="sub">(지원/참여/승리)</span></div>
       <div id="count-골드" class="count">(당첨: 0명 / 남음: 0명)</div>
       <div id="box-골드" class="box"></div>
       <div>
@@ -86,10 +113,10 @@
   </div>
 
   <div style="margin:10px 0 8px;">
-    <button id="copy-btn" onclick="copyWinners()" disabled>클립보드로 복사</button>
+    <button id="copy-btn" class="btn" onclick="copyWinners()" disabled>클립보드로 복사</button>
   </div>
 
-  <!-- 오버레이 -->
+  <!-- 추첨 오버레이 -->
   <div id="overlay">
     <div class="panel">
       <div id="tierChip" class="chip"></div>
@@ -97,19 +124,37 @@
     </div>
   </div>
 
-  <!-- 효과음: 결과 시점에만 재생 (preload 없음) -->
-  
+  <!-- 랭크 팝업 -->
+  <div id="rankModal">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div class="modal-title" id="rankModalTitle">참여자 리스트</div>
+        <button class="modal-close" id="rankModalClose" aria-label="닫기">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="rankTableWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 효과음: 결과 시점에만 재생 -->
   <audio id="ding" src="./assets/ding.mp3" preload="none"></audio>
 
 <script>
 /* ===== 설정(GAS 웹앱) — /exec URL로 교체 ===== */
 const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxXag4ZYrj1ttorbmcyEiZY_b82fVqNAI7RPWfukrQe4hxBnSTU2rCJyX_xVp4wIiDgsw/exec';
 
+/* 시트 열기 버튼용(필수 아님): GAS가 응답에 sheetId를 넘겨줌. */
+let SHEET_ID_FROM_GAS = null;
+
 /* ===== 전역 상태 ===== */
 const RANKS=['언랭','브론즈','실버','골드'];
 let pool={언랭:[],브론즈:[],실버:[],골드:[]};
 let selected={언랭:[],브론즈:[],실버:[],골드:[]};
 let memberStats={};
+/* 참여자 리스트 원본 테이블 */
+let statsHeader = [];
+let statsRows   = [];
 
 /* ===== helpers ===== */
 const $=id=>document.getElementById(id);
@@ -126,6 +171,10 @@ function copyWinners(){ if(totalWinners()===0){ setStatus('복사할 당첨자�
   const lines=[]; for(const r of RANKS){ const arr=selected[r]||[]; if(!arr.length) continue; lines.push(r,'------------',...arr.map(n=>`${n}`),''); }
   const txt=lines.join('\n').trim(); if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>setStatus('✅ 복사 완료',false)).catch(()=>alert(txt)); } else alert(txt);
 }
+
+/* 이름/등급 표준화 & 필터 */
+function _norm(s){ return String(s||'').replace(/\u00A0/g,' ').replace(/\s+/g,' ').trim(); }
+function rankNorm(s){ s=_norm(s).toLowerCase(); if(/언랭|unrank/.test(s))return '언랭'; if(/브론즈|bronze/.test(s))return '브론즈'; if(/실버|silver/.test(s))return '실버'; if(/골드|gold/.test(s))return '골드'; return ''; }
 
 /* ===== 스피너 ===== */
 function gradByRank(rank){ switch(rank){ case '브론즈':return 'linear-gradient(135deg,#968768,#524937)'; case '실버':return 'linear-gradient(135deg,#BABABA,#616060)'; case '골드':return 'linear-gradient(135deg,#D1C432,#827810)'; default:return 'linear-gradient(135deg,#44D446,#2C472C)'; } }
@@ -157,7 +206,6 @@ function canvasSpin(names, winner, opts, onDone){
     const endTime=spinTotal+extraTotal;
     if(t<endTime){ requestAnimationFrame(n2=>renderFrame(n2,t0)); }
     else {
-      // ✅ 결과 시점에만 효과음 1회 재생
       try{ const ding=$('ding'); if(ding){ ding.currentTime=0; ding.play().catch(()=>{}); } }catch(e){}
       setTimeout(()=>{ $('overlay').classList.remove('show'); onDone&&onDone(); }, opts.waitMs ?? 1800);
     }
@@ -192,7 +240,7 @@ function pick(rank){
 }
 function resetRank(rank){
   selected[rank]=[]; html('box-'+rank,''); updateCounts(rank);
-  dis('btn-'+rank,(pool[rank]?.length||0)===0); dis('copy-btn', totalWinners()===0);
+  dis('btn-'+rank',(pool[rank]?.length||0)===0); dis('copy-btn', totalWinners()===0);
   setStatus(`${rank} 리셋 완료`, false);
 }
 function preReset(){
@@ -200,6 +248,64 @@ function preReset(){
   for(const r of RANKS){ html('box-'+r,''); html('count-'+r,'(당첨: 0명 / 남음: 0명)'); dis('btn-'+r,true); dis('reset-'+r,true); }
   dis('copy-btn',true);
 }
+
+/* ===== 랭크 팝업 로직 ===== */
+function buildRankTable(rank){
+  if(!statsHeader.length){ return '<div>참여자 리스트를 불러오지 못했습니다.</div>'; }
+  // 컬럼 인덱스 결정
+  const hdr = statsHeader.map(h => _norm(h));
+  const idxName  = hdr.findIndex(h => /^이름$|^name$/i.test(h));
+  const idxRank  = hdr.findIndex(h => /^등급$|^랭크$|^rank$/i.test(h));
+  const idxApply = hdr.findIndex(h => /^지원$|^apply$/i.test(h));
+  const idxPart  = hdr.findIndex(h => /^참여$|^part$/i.test(h));
+  const idxWin   = hdr.findIndex(h => /^승리$|^win$/i.test(h));
+
+  // "숫자회" 패턴 열 자동 수집
+  const extraIdx = [];
+  hdr.forEach((h,i)=>{ if(/^\d+\s*회$/i.test(h)) extraIdx.push(i); });
+
+  // 머릿글 구성
+  const ths = [];
+  if(idxName>=0)  ths.push('<th>이름</th>');
+  if(idxRank>=0)  ths.push('<th>등급</th>');
+  if(idxApply>=0) ths.push('<th>지원</th>');
+  if(idxPart>=0)  ths.push('<th>참여</th>');
+  if(idxWin>=0)   ths.push('<th>승리</th>');
+  extraIdx.forEach(i => ths.push(`<th>${esc(hdr[i])}</th>`));
+
+  // 행 필터링(등급)
+  const rowsHtml = [];
+  for(const r of statsRows){
+    const rankVal = idxRank>=0 ? r[idxRank] : '';
+    if(rank && rankNorm(rankVal)!==rank) continue;
+
+    const tds = [];
+    if(idxName>=0)  tds.push(`<td>${esc(r[idxName]||'')}</td>`);
+    if(idxRank>=0){
+      const rv = rankNorm(r[idxRank]);
+      const badgeClass = rv==='언랭'?'unrank':rv==='브론즈'?'bronze':rv==='실버'?'silver':rv==='골드'?'gold':'';
+      tds.push(`<td><span class="badge ${badgeClass}">${esc(r[idxRank]||'')}</span></td>`);
+    }
+    if(idxApply>=0) tds.push(`<td>${esc(r[idxApply]||'')}</td>`);
+    if(idxPart>=0)  tds.push(`<td>${esc(r[idxPart ]||'')}</td>`);
+    if(idxWin>=0)   tds.push(`<td>${esc(r[idxWin  ]||'')}</td>`);
+    extraIdx.forEach(i => tds.push(`<td>${esc(r[i]||'')}</td>`));
+    rowsHtml.push(`<tr>${tds.join('')}</tr>`);
+  }
+
+  return `
+    <table>
+      <thead><tr>${ths.join('')}</tr></thead>
+      <tbody>${rowsHtml.join('') || '<tr><td colspan="'+ths.length+'">해당 등급 데이터가 없습니다.</td></tr>'}</tbody>
+    </table>
+  `;
+}
+function openRankModal(rank){
+  $('rankModalTitle').textContent = `참여자 리스트 — ${rank}`;
+  $('rankTableWrap').innerHTML = buildRankTable(rank);
+  $('rankModal').classList.add('show');
+}
+function closeRankModal(){ $('rankModal').classList.remove('show'); }
 
 /* ===== 데이터 로드(GAS) ===== */
 async function loadData(){
@@ -215,6 +321,9 @@ async function loadData(){
       '골드': Array.isArray(data.pools?.['골드']) ? data.pools['골드'] : []
     };
     memberStats = (data.stats && typeof data.stats==='object') ? data.stats : {};
+    statsHeader = Array.isArray(data.statsHeader) ? data.statsHeader : [];
+    statsRows   = Array.isArray(data.statsRows)   ? data.statsRows   : [];
+    SHEET_ID_FROM_GAS = data.sheetId || null;
 
     for(const r of RANKS){
       const remain=(pool[r]||[]).length;
@@ -230,20 +339,30 @@ async function loadData(){
   }
 }
 
-/* ===== 부팅 ===== */
+/* ===== 부팅 & 이벤트 바인딩 ===== */
 document.addEventListener('DOMContentLoaded', ()=>{
   preReset();
   loadData();
+
+  // 시트 열기
+  $('open-sheet-btn').addEventListener('click', ()=>{
+    const id = SHEET_ID_FROM_GAS;
+    if(!id){ setStatus('시트 ID를 찾을 수 없습니다.', true); return; }
+    const url = `https://docs.google.com/spreadsheets/d/${id}/edit`;
+    window.open(url, '_blank', 'noopener');
+  });
+
+  // 타이틀 클릭 → 랭크 팝업
+  document.querySelectorAll('.title[data-rank]').forEach(el=>{
+    el.addEventListener('click', ()=> openRankModal(el.getAttribute('data-rank')));
+  });
+
+  // 팝업 닫기
+  $('rankModalClose').addEventListener('click', closeRankModal);
+  $('rankModal').addEventListener('click', (e)=>{
+    if(e.target.id==='rankModal') closeRankModal(); // 바깥 클릭 닫기
+  });
 });
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
