@@ -6,169 +6,76 @@
   <title>힙합 랭겜 추첨기</title>
   <link rel="icon" href="./assets/favicon.ico">
   <style>
-  :root{
-    --maxw:1720px;
-    --card-w:380px;
-    --box-w:240px;
-    --box-h:220px;
-    /* 고정 헤더 높이 (본문 표 상단 여백 계산에 사용) */
-    --fixed-head-h: 44px;
-  }
-  html,body{margin:0;padding:0;background:transparent !important;overflow:hidden}
-  body{
-    font-family:Arial,system-ui,"Noto Sans KR","Malgun Gothic",sans-serif;
-    font-size:18px;
-    text-align:center;
-  }
-  h2{margin:10px 0 6px}
-  #status{min-height:22px;margin:6px 0 2px}
-  .status-ok{color:#1a7f37}
-  .status-err{color:#c62828}
-  #meta{font-size:13px;color:#666;min-height:18px;margin-bottom:14px}
-  /* 상단 액션 */
-  .actions{margin:6px 0 12px;}
-  .btn{
-    appearance:none;border:1px solid #d0d7de;background:#fff;border-radius:8px;
-    padding:10px 14px;font-size:14px;cursor:pointer
-  }
-  .btn:hover{background:#f6f8fa}
-  /* 랭크 카드 그리드 */
-  .grid{
-    max-width:var(--maxw);margin:6px auto;
-    display:grid;grid-template-columns:repeat(4,1fr);gap:18px
-  }
-  .card{max-width:var(--card-w);margin:0 auto}
-  .title{
-    font-weight:800;font-size:20px;margin-bottom:4px;
-    display:flex;gap:8px;justify-content:center;align-items:center;
-    cursor:pointer;user-select:none
-  }
-  .title:hover{opacity:.85}
-  .sub{font-size:.9em;color:#555}
-  .count{font-size:16px;margin:0 0 6px}
-  .box{
-    width:var(--box-w);height:var(--box-h);
-    border:2px solid #000;margin:8px auto;border-radius:12px;
-    padding:8px;text-align:left;overflow-y:auto;background:#fff
-  }
-  .box .winner-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px}
-  .box .winner-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .box .winner-stats{flex:0 0 auto;color:#6B6620;font-weight:700;white-space:nowrap;text-align:right}
-  .card > div:last-of-type > button{font-size:20px;padding:15px 20px;border-radius:20px}
-  #copy-btn{font-size:15px;padding:10px 18px;line-height:1;min-width:180px;border-radius:10px}
-  /* 추첨 오버레이(스피너) */
-  #overlay{
-    position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;
-    display:flex;align-items:center;justify-content:center;
-    opacity:0;visibility:hidden;pointer-events:none;
-    transition:opacity .2s ease,visibility 0s linear .2s
-  }
-  #overlay.show{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s ease}
-  #overlay .panel{
-    border-radius:20px;padding:16px 18px;
-    background-image:var(--grad,linear-gradient(135deg,#44D446,#2C472C));
-    box-shadow:0 18px 50px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06)
-  }
-  #overlay .chip{
-    display:inline-block;margin:0 auto 8px;font-weight:800;font-size:12px;letter-spacing:.3px;
-    background:#1b2330;color:#e6edf3;border-radius:999px;padding:6px 10px;text-transform:uppercase
-  }
-  #canvasWrap{
-    position:relative;width:560px;height:200px;border-radius:16px;
-    background:linear-gradient(180deg,#10161c,#0e141a);
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);overflow:hidden
-  }
-  /* 랭크 팝업 모달 */
-  #rankModal{
-    position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;
-    display:none;align-items:center;justify-content:center;padding:24px
-  }
-  #rankModal.show{display:flex}
-  .modal-card{
-    background:#fff;max-width:1100px;width:95vw;max-height:85vh;border-radius:14px;
-    box-shadow:0 18px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden
-  }
-  .modal-header{
-    padding:12px 16px;border-bottom:1px solid #eaeef2;
-    display:flex;align-items:center;justify-content:space-between
-  }
-  .modal-title{font-weight:800;font-size:18px}
-  .modal-close{appearance:none;border:0;background:transparent;font-size:22px;line-height:1;padding:8px 10px;cursor:pointer}
-  /* 모달 본문: 스크롤 컨테이너 */
-  .modal-body{
-    padding:10px 14px;
-    overflow:auto;
-    max-height:85vh;
-    background:#fff;
-    position:relative;
-  }
-  /* ================================
-     고정 헤더(분리 렌더) 레이어
-     - 실제 thead는 숨기고(높이 제거),
-     - 고정 헤더는 별도 .fixed-head 에 그린다.
-     ================================= */
-  .fixed-head{
-    position:sticky; top:0; left:0; right:0;
-    height:var(--fixed-head-h);
-    z-index:20;
-    background:#fff;
-    display:flex; align-items:stretch;
-    border-bottom:1px solid #e1e4e8;
-    box-shadow:0 1px 0 rgba(0,0,0,.04);
-    overflow:hidden;
-  }
-  .fixed-head .fh-cell{
-    display:flex; align-items:center;
-    padding:8px 10px;
-    font-size:14px; font-weight:700;
-    background:#f6f8fa;
-    border-right:1px solid #e1e4e8;
-    /* ⬇⬇⬇ 열 너비는 JS가 아래 속성에 'px'로 채웁니다 ⬇⬇⬇ */
-    /* width: <JS가 채움>; min-width: <JS>; max-width: <JS>; */
-    white-space:nowrap;
-  }
-  .fixed-head .fh-cell.sticky-col-head{
-    position:sticky; left:0; z-index:22;
-    box-shadow:1px 0 0 rgba(0,0,0,0.06);
-  }
-  .fixed-head .fh-cell.sep-right{
-    border-right-width:3px !important; border-right-color:#1f2a44 !important;
-  }
-  /* 표 스크롤 영역: 고정 헤더 높이만큼 위 여백을 준다 */
-  .table-scroll{ padding-top: var(--fixed-head-h); }
-  /* 실제 표: thead는 숨겨서 공간을 없앤다(고정 헤더가 대신함) */
-  table{
-    border-collapse:separate;
-    border-spacing:0;
-    width:100%;
-    font-size:14px;
-    margin:0;
-  }
-  thead{ display:none; } /* ⛔ 실제 thead 숨김 (JS 고정헤더 사용) */
-  th,td{
-    border:1px solid #e1e4e8;
-    padding:8px 10px;
-    text-align:left;
-    white-space:nowrap;
-    background:#fff;
-    background-clip:padding-box;
-  }
-  /* 첫 열(이름) 고정 */
-  .sticky-col{ position:sticky; left:0; z-index:2; background:#fff; }
-  .sticky-col.sticky-col-body{ box-shadow:1px 0 0 rgba(0,0,0,0.06); }
-  /* 승리 열 오른쪽 굵은 구분선 */
-  .sep-right{ border-right-width:3px !important; border-right-color:#1f2a44 !important; }
-  /* 1회/2회/... 승리 셀 강조 */
-  .extra-col.win-cell{ background:#fff8d6; }
-  /* 등급 배지(남아있는 곳에서 사용) */
-  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
-  .badge.unrank{background:#d9f2d9}
-  .badge.bronze{background:#eadcc5}
-  .badge.silver{background:#e3e3e3}
-  .badge.gold{background:#efe59d}
-  /* 반응형 */
-  @media (max-width:1200px){ .grid{grid-template-columns:repeat(2,1fr)} }
-  @media (max-width:640px){ .grid{grid-template-columns:repeat(1,1fr)} :root{--box-w:86vw} }
+    :root{
+      --maxw:1720px;
+      --card-w:380px;
+      --box-w:240px;
+      --box-h:220px;
+    }
+  
+    /* 기본 */
+    html,body{margin:0;padding:0;background:transparent !important;overflow:hidden}
+    body{font-family:Arial,system-ui,"Noto Sans KR","Malgun Gothic",sans-serif;font-size:18px;text-align:center}
+    .grid{max-width:var(--maxw);margin:6px auto;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+    .card{max-width:var(--card-w);margin:0 auto}
+    .title{font-weight:800;font-size:20px;margin-bottom:4px;display:flex;gap:8px;justify-content:center;align-items:center;cursor:pointer;user-select:none}
+    .sub{font-size:.9em;color:#555}
+    .count{font-size:16px;margin:0 0 6px}
+    .box{width:var(--box-w);height:var(--box-h);border:2px solid #000;margin:8px auto;border-radius:12px;padding:8px;text-align:left;overflow-y:auto;background:#fff}
+    .box .winner-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 6px}
+    .box .winner-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .box .winner-stats{flex:0 0 auto;color:#6B6620;font-weight:700;white-space:nowrap;text-align:right}
+    .btn{appearance:none;border:1px solid #d0d7de;background:#fff;border-radius:8px;padding:10px 14px;font-size:14px;cursor:pointer}
+    .btn:hover{background:#f6f8fa}
+  
+    /* 모달 */
+    #rankModal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9998;display:none;align-items:center;justify-content:center;padding:24px}
+    #rankModal.show{display:flex}
+    .modal-card{background:#fff;max-width:1100px;width:95vw;max-height:85vh;border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
+    .modal-header{padding:12px 16px;border-bottom:1px solid #eaeef2;display:flex;align-items:center;justify-content:space-between}
+    .modal-title{font-weight:800;font-size:18px}
+    .modal-close{appearance:none;border:0;background:transparent;font-size:22px;line-height:1;padding:8px 10px;cursor:pointer}
+    .modal-body{padding:10px 14px;overflow:auto;max-height:85vh;background:#fff;position:relative}
+  
+    /* 테이블: 가로로 ‘필요한 만큼만’ 넓어지고, 컨테이너는 스크롤 */
+    .table-wrap{min-width:100%}              /* 래퍼가 컨테이너 너비는 채우게 */
+    table{
+      border-collapse:separate;              /* sticky와 경계선 깨짐 방지 */
+      border-spacing:0;
+      width:max-content;                     /* 내용만큼만 가로 확장 */
+      min-width:100%;                        /* 내용이 적을 땐 컨테이너 폭 채움 */
+      font-size:14px;
+      margin:0;
+    }
+    th,td{
+      border:1px solid #e1e4e8;
+      padding:8px 10px;
+      text-align:left;
+      white-space:nowrap;                    /* 셀 줄바꿈 방지 => 불필요한 무한 확장 방지 */
+      background:#fff;
+      background-clip:padding-box;
+    }
+  
+    /* ① 상단 헤더 고정 */
+    thead th{
+      position:sticky;
+      top:0;                                 /* 헤더 고정 */
+      z-index:3;
+      background:#f6f8fa;                    /* 헤더 배경 */
+      box-shadow:0 1px 0 rgba(0,0,0,.04);
+    }
+  
+    /* ② 좌측 '이름' 고정 (헤더/바디 공통) */
+    .sticky-col{position:sticky;left:0;z-index:2;background:#fff}
+    .sticky-col-head{left:0;z-index:4;background:#f6f8fa;box-shadow:1px 0 0 rgba(0,0,0,0.06)}
+  
+    /* 구분선/강조 */
+    .sep-right{border-right-width:3px !important;border-right-color:#1f2a44 !important} /* 승리 열 오른쪽 굵은 선 */
+    .extra-col.win-cell{background:#fff8d6}                                            /* 1회 이후 승리 노란색 */
+  
+    /* 반응형 */
+    @media (max-width:1200px){ .grid{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width:640px){ .grid{grid-template-columns:repeat(1,1fr)} :root{--box-w:86vw} }
   </style>
 </head>
 <body class="notranslate">
@@ -536,5 +443,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
