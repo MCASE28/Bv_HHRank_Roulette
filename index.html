@@ -319,7 +319,6 @@ function buildRankTable(rank){
   // ③ 헤더(th) 구성 (이름은 sticky 고정, 승리 열은 오른쪽 두꺼운 구분선)
   const ths = [];
   if(idxName>=0)  ths.push('<th class="sticky-col-head">이름</th>');
-  if(idxRank>=0)  ths.push('<th>등급</th>');
   if(idxApply>=0) ths.push('<th>지원</th>');
   if(idxPart>=0)  ths.push('<th>참여</th>');
   if(idxWin>=0)   ths.push('<th class="sep-right">승리</th>');
@@ -428,6 +427,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
