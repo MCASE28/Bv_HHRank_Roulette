@@ -122,7 +122,7 @@ function renderRow(name){ const safe=esc(name); return `<div class="winner-row">
 function updateCounts(rank){ const p=(selected[rank]||[]).length; const r=Math.max(0,(pool[rank]?.length||0)-p); html('count-'+rank,`(당첨: ${p}명 / 남음: ${r}명)`); }
 function totalWinners(){return RANKS.reduce((s,r)=>s+(selected[r]?.length||0),0)}
 function copyWinners(){ if(totalWinners()===0){ setStatus('복사할 당첨자가 없습니다.',true); return; }
-  const lines=[]; for(const r of RANKS){ const arr=selected[r]||[]; if(!arr.length) continue; lines.push(r,'------------',...arr.map(n=>`${n} (${fmtStats(n)})`),''); }
+  const lines=[]; for(const r of RANKS){ const arr=selected[r]||[]; if(!arr.length) continue; lines.push(r,'------------',...arr.map(n=>`${n}`),''); }
   const txt=lines.join('\n').trim(); if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>setStatus('✅ 복사 완료',false)).catch(()=>alert(txt)); } else alert(txt);
 }
 
@@ -237,6 +237,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
